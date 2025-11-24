@@ -1,0 +1,176 @@
+/* SellSuite Admin Styles */
+.sellsuite-admin-container {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  max-width: 1200px;
+  margin: 20px 0;
+}
+
+.sellsuite-tab-panel {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.sellsuite-tab-panel .components-tab-panel__tabs {
+  border-bottom: 1px solid #ddd;
+  padding: 0;
+  margin: 0;
+}
+
+.sellsuite-tab-panel .components-tab-panel__tabs-item {
+  padding: 12px 20px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: #555;
+  transition: all 0.2s;
+}
+
+.sellsuite-tab-panel .components-tab-panel__tabs-item:hover {
+  color: #2271b1;
+  background: #f6f7f7;
+}
+
+.sellsuite-tab-panel .components-tab-panel__tabs-item.is-active {
+  color: #2271b1;
+  border-bottom: 2px solid #2271b1;
+  background: #fff;
+}
+
+.sellsuite-tab-panel .components-tab-panel__tab-content {
+  padding: 20px;
+}
+
+/* Loading State */
+.sellsuite-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+}
+
+/* Cards */
+.components-card {
+  margin-bottom: 20px;
+}
+
+.components-card-header h2,
+.components-card-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.components-card-body {
+  padding: 20px;
+}
+
+/* Form Controls */
+.components-base-control {
+  margin-bottom: 20px;
+}
+
+.components-text-control__input {
+  max-width: 300px;
+}
+
+/* Points Tab */
+.sellsuite-points-tab .sellsuite-points-preview {
+  background: #f6f7f7;
+}
+
+.sellsuite-points-preview p {
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+/* Products Tab */
+.sellsuite-products-tab ul {
+  margin: 16px 0;
+  padding-left: 24px;
+}
+
+.sellsuite-products-tab li {
+  margin: 8px 0;
+}
+
+.sellsuite-coming-soon {
+  margin-top: 16px;
+}
+
+/* Customers Tab */
+.sellsuite-customers-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+}
+
+.sellsuite-customers-table th,
+.sellsuite-customers-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.sellsuite-customers-table th {
+  background: #f6f7f7;
+  font-weight: 600;
+  font-size: 13px;
+  color: #555;
+}
+
+.sellsuite-customers-table tbody tr:hover {
+  background: #f9f9f9;
+}
+
+.sellsuite-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.sellsuite-stat {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  background: #f6f7f7;
+  border-radius: 4px;
+}
+
+.sellsuite-stat-label {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.sellsuite-stat-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: #2271b1;
+}
+
+/* Save Button */
+.sellsuite-save-button-container {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #ddd;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sellsuite-customers-table {
+    font-size: 13px;
+  }
+
+  .sellsuite-customers-table th,
+  .sellsuite-customers-table td {
+    padding: 8px;
+  }
+
+  .sellsuite-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
