@@ -32,9 +32,189 @@ class WooCommerce_Integration {
         // Template override: let plugin provide WooCommerce templates from templates/woocommerce/
         // add_filter('woocommerce_locate_template', array($this, 'locate_plugin_template'), 10, 3);
 
+        // REST API for products-info (DataTables server-side)
+        add_action( 'rest_api_init', array( $this, 'register_products_info_rest_route' ) );
+
+        // Enqueue DataTables & frontend script on products-info endpoint
+        add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_products_info_assets' ) );
         
     }
 
+    /**
+     * Register REST route for DataTables server-side product listing.
+     * Endpoint: /wp-json/sellsuite/v1/products-info
+     *
+     * Accepts: page, length, search (or DataTables standard params)
+     * Returns JSON in DataTables server-side format: draw, recordsTotal, recordsFiltered, data[]
+     *
+     * Security: permission_callback ensures only users with 'product_viewer' capability can access.
+     * Performance: consider caching the counts and results for unauthenticated or expensive queries.
+     */
+    public function register_products_info_rest_route() {
+        register_rest_route( 'sellsuite/v1', '/products-info', array(
+            'methods'             => 'GET',
+            'callback'            => array( $this, 'products_info_rest_handler' ),
+            'permission_callback' => array( $this, 'products_info_rest_permissions_check' ),
+        ) );
+    }
+
+    /**
+     * Permission callback for products-info route.
+     * Only allow users with the 'product_viewer' capability.
+     */
+    public function products_info_rest_permissions_check( \WP_REST_Request $request ) {
+        // Must be logged in and have capability 'product_viewer'
+        if ( ! is_user_logged_in() ) {
+            return new \WP_Error( 'rest_forbidden', __( 'You must be logged in to view this resource.', 'sellsuite' ), array( 'status' => 401 ) );
+        }
+
+        if ( ! current_user_can( 'product_viewer' ) ) {
+            return new \WP_Error( 'rest_forbidden', __( 'Insufficient permissions to view products.', 'sellsuite' ), array( 'status' => 403 ) );
+        }
+
+        return true;
+    }
+
+    /**
+     * REST handler: returns products for DataTables server-side processing.
+     */
+    public function products_info_rest_handler( \WP_REST_Request $request ) {
+        global $wpdb;
+
+        // DataTables uses draw, start, length, search[value]
+        $params = $request->get_query_params();
+
+        // Support both DataTables and simple page/length/search
+        $draw = isset( $params['draw'] ) ? intval( $params['draw'] ) : 0;
+        $length = isset( $params['length'] ) ? intval( $params['length'] ) : ( isset( $params['length'] ) ? intval( $params['length'] ) : 10 );
+        if ( $length <= 0 ) $length = 10;
+
+        // DataTables sends 'start' (offset). Convert to page (1-based)
+        $start = isset( $params['start'] ) ? intval( $params['start'] ) : 0;
+        $page = 1;
+        if ( isset( $params['page'] ) ) {
+            $page = max( 1, intval( $params['page'] ) );
+        } else {
+            $page = floor( $start / $length ) + 1;
+        }
+
+        // Search term
+        $search = '';
+        if ( isset( $params['search'] ) && is_string( $params['search'] ) ) {
+            $search = sanitize_text_field( $params['search'] );
+        } elseif ( isset( $params['search']['value'] ) ) {
+            $search = sanitize_text_field( $params['search']['value'] );
+        }
+
+        // Basic args for WP_Query
+        $query_args = array(
+            'post_type'      => 'product',
+            'posts_per_page' => $length,
+            'paged'          => $page,
+            'post_status'    => 'publish',
+            's'              => $search ? $search : '',
+            'fields'         => 'ids', // we'll fetch minimal data then build output. improves performance.
+        );
+
+        // Use WP_Query (safer than custom SQL unless carefully prepared)
+        $q = new \WP_Query( $query_args );
+
+        $product_ids = $q->posts;
+
+        // Total records (all published products) - fast via wp_count_posts
+        $count_posts = wp_count_posts( 'product' );
+        $recordsTotal = isset( $count_posts->publish ) ? intval( $count_posts->publish ) : 0;
+
+        // recordsFiltered = total matching search
+        $recordsFiltered = $q->found_posts;
+
+        // Build data rows. Keep minimal fields to reduce payload.
+        $data = array();
+        if ( ! empty( $product_ids ) ) {
+            foreach ( $product_ids as $pid ) {
+                $product = wc_get_product( $pid );
+                if ( ! $product ) continue;
+
+                $row = array();
+                $row['id'] = $pid;
+                $row['sku'] = $product->get_sku();
+                $row['title'] = $product->get_name();
+                $row['price'] = wc_price( $product->get_price() );
+                $row['stock_status'] = $product->get_stock_status();
+                $row['link'] = get_permalink( $pid );
+
+                $data[] = $row;
+            }
+        }
+
+        // Return in DataTables server-side format
+        $response = array(
+            'draw' => $draw,
+            'recordsTotal' => $recordsTotal,
+            'recordsFiltered' => $recordsFiltered,
+            'data' => $data,
+        );
+
+        // Note: Consider caching the $recordsTotal and $recordsFiltered values, and caching product lists
+        // for common queries (e.g. empty search, first page). Use transient caching with appropriate invalidation
+        // when products are added/updated. Avoid caching per-user results unless necessary.
+
+        return rest_ensure_response( $response );
+    }
+
+    /**
+     * Enqueue DataTables and frontend JS only on the my-account 'products-info' endpoint page.
+     */
+    public function enqueue_products_info_assets() {
+        // Only load assets on the WooCommerce 'products-info' endpoint page
+        if ( ! function_exists( 'is_account_page' ) || ! is_account_page() ) {
+            return;
+        }
+
+        // is_wc_endpoint_url is the preferred check but sometimes query vars aren't available
+        // during certain hooks. Use a robust fallback that checks query var or request URI.
+        $on_endpoint = false;
+        if ( function_exists( 'is_wc_endpoint_url' ) && is_wc_endpoint_url( 'products-info' ) ) {
+            $on_endpoint = true;
+        } else {
+            // Fallback: check query var directly
+            $qv = get_query_var( 'products-info', '' );
+            if ( $qv !== '' && $qv !== false ) {
+                $on_endpoint = true;
+            } else {
+                // Last resort: check the REQUEST_URI for the endpoint slug
+                if ( isset( $_SERVER['REQUEST_URI'] ) && false !== strpos( wp_unslash( $_SERVER['REQUEST_URI'] ), 'products-info' ) ) {
+                    $on_endpoint = true;
+                }
+            }
+        }
+
+        if ( ! $on_endpoint ) {
+            return;
+        }
+
+        // DataTables (CDN) - CSS
+        wp_enqueue_style( 'sellsuite-datatables', 'https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css', array(), '1.13.6' );
+
+        // jQuery is a dependency of DataTables
+        wp_enqueue_script( 'sellsuite-datatables', 'https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js', array( 'jquery' ), '1.13.6', true );
+
+        // Our frontend script
+        $asset_url = SELLSUITE_PLUGIN_URL . 'assets/js/products-info.js';
+        wp_enqueue_script( 'sellsuite-products-info', $asset_url, array( 'jquery', 'sellsuite-datatables-js' ), filemtime( dirname( __DIR__ ) . '/assets/js/products-info.js' ), true );
+
+        // Localize REST URL, nonce, and capability flag
+        $rest_url = esc_url_raw( rest_url( 'sellsuite/v1/products-info' ) );
+        $nonce = wp_create_nonce( 'wp_rest' );
+        $can_view = current_user_can( 'product_viewer' );
+
+        wp_localize_script( 'sellsuite-products-info', 'sellsuiteProductsInfo', array(
+            'restUrl' => $rest_url,
+            'nonce'   => $nonce,
+            'canView' => $can_view,
+        ) );
+        
+    }
 
     public function award_points_on_order_complete($order_id) {
         $order = wc_get_order($order_id);

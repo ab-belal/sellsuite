@@ -63,6 +63,18 @@ class Loader {
 
         $this->add_action('wp_enqueue_scripts', $frontend, 'enqueue_scripts');
         $this->add_action('woocommerce_before_my_account', $frontend, 'display_customer_points');
+        
+        // Register the custom WooCommerce My Account endpoint
+        $this->add_action('init', $frontend, 'add_products_info_endpoint');
+        
+        // Add the endpoint to the My Account menu
+        $this->add_filter('woocommerce_account_menu_items', $frontend, 'add_products_info_menu_item');
+        
+        // Display content when the endpoint is accessed
+        $this->add_action('woocommerce_account_products-info_endpoint', $frontend, 'products_info_endpoint_content');
+        
+        // Set the page title for the endpoint
+        $this->add_filter('the_title', $frontend, 'products_info_endpoint_title');
     }
 
     /**

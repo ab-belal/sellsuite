@@ -30,6 +30,13 @@ class Activator {
         // Set default options
         self::set_default_options();
 
+        // Create custom user roles
+        self::create_custom_roles();
+
+        // Register custom endpoints before flushing rewrite rules
+        // This ensures the endpoint is available immediately after activation
+        add_rewrite_endpoint('products-info', EP_ROOT | EP_PAGES);
+
         // Flush rewrite rules
         flush_rewrite_rules();
     }
@@ -73,6 +80,51 @@ class Activator {
 
         if (!get_option('sellsuite_settings')) {
             add_option('sellsuite_settings', $default_options);
+        }
+    }
+
+    /**
+     * Create custom user roles and capabilities.
+     *
+     * This method creates the 'product_viewer' role with the custom
+     * 'product_viewer' capability along with basic WordPress capabilities.
+     */
+    private static function create_custom_roles() {
+        // Get the current role to check if it already exists
+        $role = get_role('product_viewer');
+
+        // Only create the role if it doesn't exist yet
+        // This prevents duplicate role creation on re-activation
+        if (null === $role) {
+            add_role(
+                'product_viewer',                    // Role slug (used internally)
+                __('Product Viewer', 'sellsuite'),   // Display name (shown in admin)
+                array(
+                    // Basic WordPress capabilities
+                    'read' => true,                  // Allows user to login and access dashboard
+                    
+                    // Custom capability for viewing product information
+                    'product_viewer' => true,        // Your custom capability
+                )
+            );
+        } else {
+            // If role exists, ensure it has the latest capabilities
+            // This is useful if you update capabilities in a plugin update
+            $role->add_cap('product_viewer', true);
+            $role->add_cap('read', true);
+        }
+
+        // Optional: Add the custom capability to other roles if needed
+        // For example, administrators should have all capabilities
+        $admin_role = get_role('administrator');
+        if ($admin_role) {
+            $admin_role->add_cap('product_viewer', true);
+        }
+
+        // Optional: Add to shop_manager if WooCommerce is active
+        $shop_manager_role = get_role('shop_manager');
+        if ($shop_manager_role) {
+            $shop_manager_role->add_cap('product_viewer', true);
         }
     }
 }
