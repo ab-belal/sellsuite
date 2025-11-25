@@ -21,13 +21,13 @@ class Frontend {
             SELLSUITE_VERSION
         );
 
-        wp_enqueue_script(
-            'sellsuite-frontend-js',
-            SELLSUITE_PLUGIN_URL . 'assets/js/frontend.js',
-            array('jquery'),
-            SELLSUITE_VERSION,
-            true
-        );
+        // wp_enqueue_script(
+        //     'sellsuite-frontend-js',
+        //     SELLSUITE_PLUGIN_URL . 'assets/js/frontend.js',
+        //     array('jquery'),
+        //     SELLSUITE_VERSION,
+        //     true
+        // );
 
     }
 
