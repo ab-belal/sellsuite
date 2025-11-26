@@ -162,7 +162,7 @@ $max_pages = $products_query->max_num_pages;
     </select>
 
     <!-- Sorting -->
-    <select id="sellsuite-sort">
+    <!-- <select id="sellsuite-sort">
         <option value="">Sort: Default</option>
         <option value="id_asc">ID ↑</option>
         <option value="id_desc">ID ↓</option>
@@ -170,7 +170,7 @@ $max_pages = $products_query->max_num_pages;
         <option value="name_desc">Name ↓</option>
         <option value="price_asc">Price ↑</option>
         <option value="price_desc">Price ↓</option>
-    </select>
+    </select> -->
 
     
     <div id="ss-loader">
@@ -217,7 +217,7 @@ do_action( 'sellsuite_after_products_info_table' );
                 stock: document.getElementById("ss-filter-stock").value,
                 brand: document.getElementById("ss-filter-brand")?.value || "",
                 per_page: document.getElementById("ss-per-page").value,
-                sort: document.getElementById("sellsuite-sort").value,
+                // sort: document.getElementById("sellsuite-sort").value,
                 paged: page
             };
 
@@ -257,7 +257,7 @@ do_action( 'sellsuite_after_products_info_table' );
         });
 
         // Filters + per page (change event)
-        ["ss-filter-cat", "ss-filter-stock", "ss-filter-brand", "ss-per-page", "sellsuite-sort"]
+        ["ss-filter-cat", "ss-filter-stock", "ss-filter-brand", "ss-per-page"]
             .forEach(id => {
                 let el = document.getElementById(id);
                 if (el) el.addEventListener("change", () => loadProducts(1));
@@ -265,57 +265,5 @@ do_action( 'sellsuite_after_products_info_table' );
 
     });
 
-
-    // jQuery(function($){
-
-    //     let typingTimer;
-    //     const delay = 300;
-
-    //     function load_products(page = 1) {
-
-    //         $("#sellsuite-loader").show();
-
-    //         $.ajax({
-    //             url: sellsuite_ajax.ajax_url,
-    //             type: "POST",
-    //             data: {
-    //                 action: "sellsuite_load_products",
-    //                 search: $("#sellsuite-search").val(),
-    //                 per_page: $("#sellsuite-per-page").val(),
-    //                 category: $("#sellsuite-filter-category").val(),
-    //                 stock: $("#sellsuite-filter-stock").val(),
-    //                 sort: $("#sellsuite-sort").val(),
-    //                 paged: page,
-    //             },
-    //             success: function(res){
-    //                 $("#sellsuite-products-container").html(res);
-    //                 $("#sellsuite-loader").hide();
-    //             }
-    //         });
-    //     }
-
-    //     // Live search
-    //     $("#sellsuite-search").on("keyup", function(){
-    //         clearTimeout(typingTimer);
-    //         typingTimer = setTimeout(load_products, delay);
-    //     });
-
-    //     // Filters + per page + sorting
-    //     $("#sellsuite-filter-category, #sellsuite-filter-stock, #sellsuite-per-page, #sellsuite-sort")
-    //         .on("change", function(){
-    //             load_products();
-    //         });
-
-    //     // Pagination clicks
-    //     $(document).on("click", ".sellsuite-pagination a", function(e){
-    //         e.preventDefault();
-    //         let page = $(this).data("page");
-    //         load_products(page);
-    //     });
-
-
-    //     // Initial load
-    //     load_products();
-    // });
 
 </script>

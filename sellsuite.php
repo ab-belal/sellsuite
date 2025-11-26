@@ -136,6 +136,26 @@ function sellsuite_load_products() {
         ];
     }
 
+    if ($search !== "") {
+
+        // If the search is a number → treat as Product ID search
+        if (ctype_digit($search)) {
+            $args['post__in'] = [ intval($search) ];
+
+        } else {
+            // Normal WP search (title, content)
+            $args['s'] = $search;
+        }
+
+        // Also allow search by SKU
+        $meta_query[] = [
+            'key'     => '_sku',
+            'value'   => $search,
+            'compare' => 'LIKE',
+        ];
+    }
+
+
     $args = [
         'post_type'      => 'product',
         'post_status'    => 'publish',
@@ -145,26 +165,6 @@ function sellsuite_load_products() {
         'posts_per_page' => $per_page,
         'paged'          => $paged,
     ];
-
-    
-    
-    if ( $search !== "" ) {
-
-        // If numeric → search by product ID
-        if ( is_numeric( $search ) ) {
-            $args['post__in'] = [ intval( $search ) ];
-        } else {
-            $args['s'] = $search;
-        }
-
-        // Also match SKU
-        $args['meta_query'][] = [
-            'key'     => '_sku',
-            'value'   => $search,
-            'compare' => 'LIKE',
-        ];
-    }
-
 
 
     if (!empty($sort)) {
@@ -203,7 +203,6 @@ function sellsuite_load_products() {
                 break;
         }
     }
-
 
 
     $q = new WP_Query($args);
@@ -316,12 +315,43 @@ function sellsuite_load_products() {
     </table>
 
 <?php
-    // Pagination
+    // Product count display: "X-Y of Z products"
+    $total_products = $q->found_posts;
+    $current_page = $paged;
+    // Calculate actual per_page for display (if -1, show all on this page)
+    $display_per_page = ($per_page === -1) ? $total_products : $per_page;
+    $start_num = (($current_page - 1) * $display_per_page) + 1;
+    $end_num = min($current_page * $display_per_page, $total_products);
+    
+    echo '<div style="margin-top:15px; margin-bottom:10px; font-size:14px; color:#666;">';
+    echo esc_html("Showing $start_num - $end_num of $total_products products");
+    echo '</div>';
+
+    // Pagination with Previous/Next and page numbers
     if ($q->max_num_pages > 1) {
-        echo '<div style="margin-top:10px;">';
-        for ($i=1; $i <= $q->max_num_pages; $i++) {
-            echo "<button class='ss-page' data-page='$i' style='margin-right:5px;'>$i</button>";
+        echo '<div style="margin-top:10px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">';
+        
+        // Previous button
+        if ($current_page > 1) {
+            echo "<button class='ss-page' data-page='" . ($current_page - 1) . "' style='padding:6px 10px; border:1px solid #ddd; background:#fff; cursor:pointer;'>&laquo; Previous</button>";
+        } else {
+            echo "<button disabled style='padding:6px 10px; border:1px solid #ddd; background:#f5f5f5; color:#999; cursor:not-allowed;'>&laquo; Previous</button>";
         }
+        
+        // Page numbers
+        for ($i = 1; $i <= $q->max_num_pages; $i++) {
+            $is_active = ($i === $current_page) ? 'true' : 'false';
+            $active_style = ($i === $current_page) ? 'background:#0073aa; color:#fff;' : 'background:#fff; color:#0073aa;';
+            echo "<button class='ss-page' data-page='$i' data-active='$is_active' style='padding:6px 10px; border:1px solid #ddd; $active_style cursor:pointer;'>$i</button>";
+        }
+        
+        // Next button
+        if ($current_page < $q->max_num_pages) {
+            echo "<button class='ss-page' data-page='" . ($current_page + 1) . "' style='padding:6px 10px; border:1px solid #ddd; background:#fff; cursor:pointer;'>Next &raquo;</button>";
+        } else {
+            echo "<button disabled style='padding:6px 10px; border:1px solid #ddd; background:#f5f5f5; color:#999; cursor:not-allowed;'>Next &raquo;</button>";
+        }
+        
         echo '</div>';
     }
 
