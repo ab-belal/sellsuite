@@ -59,7 +59,7 @@ if ( ! is_user_logged_in() || ! current_user_can('product_viewer') ) {
 require_once SELLSUITE_PLUGIN_DIR . 'includes/class-sellsuite-product-renderer.php';
 
 // --- Filters (UI-only, dynamic population) ---
-$categories = get_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => false ) );
+$categories = get_terms( array( 'taxonomy' => 'product_cat', 'hide_empty' => true ) );
 
 $brand_taxonomy = '';
 $possible_brand_taxonomies = array( 'product_brand', 'pa_brand', 'brand' );
@@ -111,7 +111,9 @@ $per_page = ($per_page_raw === 'all') ? -1 : max(1, intval($per_page_raw));
     <select id="ss-filter-cat">
         <option value="">All Categories</option>
         <?php foreach ($categories as $cat): ?>
-            <option value="<?= esc_attr($cat->term_id) ?>"><?= esc_html($cat->name) ?></option>
+            <option value="<?= esc_attr($cat->term_id) ?>">
+                <?= esc_html($cat->name) ?> (<?= intval($cat->count) ?>)
+            </option>
         <?php endforeach; ?>
     </select>
 
