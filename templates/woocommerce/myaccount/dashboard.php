@@ -28,24 +28,6 @@ wp_get_current_user();
 
 $user_id = get_current_user_id();
 
-// Points system fallback (if you have a rewards plugin, replace this retrieval)
-$points = intval( get_user_meta( $user_id, 'reward_points', true ) );
-if ( $points < 0 ) $points = 0;
-
-// Tier calculation (example)
-if ( $points >= 5000 ) {
-	$tier = 'Gold';
-	$next_target = 0;
-} elseif ( $points >= 1000 ) {
-	$tier = 'Silver';
-	$next_target = 5000 - $points;
-} else {
-	$tier = 'Bronze';
-	$next_target = 1000 - $points;
-}
-
-$progress_total = ($tier === 'Gold') ? 100 : min( 100, intval( ($points / ( $tier === 'Silver' ? 5000 : 1000 )) * 100 ) );
-
 // Recent orders
 $recent_orders = array();
 if ( function_exists( 'wc_get_orders' ) ) {
@@ -86,23 +68,6 @@ if ( function_exists( 'wc_get_products' ) ) {
 		</div>
 	</div>
 
-	<div class="points-card card">
-		<div class="card-head">
-			<span class="icon">🏆</span>
-			<h3>Rewards</h3>
-		</div>
-		<div class="points-body">
-			<div class="points-large"><?php echo esc_html( $points ); ?></div>
-			<div class="points-meta">
-				<span class="tier"><?php echo esc_html( $tier ); ?></span>
-				<span class="next"><?php echo $next_target > 0 ? esc_html( $next_target . ' to next' ) : 'Top tier'; ?></span>
-			</div>
-			<div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="<?php echo esc_attr( $progress_total ); ?>">
-				<div class="progress-bar" style="width: <?php echo esc_attr( $progress_total ); ?>%; background: #2ecc71;"></div>
-			</div>
-		</div>
-	</div>
-
 	<div class="quick-actions card">
 		<h4>Quick Actions</h4>
 		<div class="actions-grid">
@@ -111,14 +76,6 @@ if ( function_exists( 'wc_get_products' ) ) {
 			<a class="qa" href="#">💚 Wishlist</a>
 			<a class="qa" href="<?php echo esc_url( wc_get_endpoint_url( 'edit-account' ) ); ?>">⚙️ Settings</a>
 		</div>
-	</div>
-
-	<div class="notifications card">
-		<h4>Notifications</h4>
-		<ul class="notes-list">
-			<li>🎉 You earned <strong><?php echo esc_html( min( 100, $points ) ); ?> points</strong> on your last purchase.</li>
-			<li>📣 New reward tier available — check your progress.</li>
-		</ul>
 	</div>
 </aside>
 

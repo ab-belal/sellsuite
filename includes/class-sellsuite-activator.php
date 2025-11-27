@@ -24,9 +24,6 @@ class Activator {
             );
         }
 
-        // Create database tables
-        self::create_tables();
-
         // Set default options
         self::set_default_options();
 
@@ -42,41 +39,10 @@ class Activator {
     }
 
     /**
-     * Create plugin database tables.
-     */
-    private static function create_tables() {
-        global $wpdb;
-
-        $charset_collate = $wpdb->get_charset_collate();
-        $table_name = $wpdb->prefix . 'sellsuite_points';
-
-        $sql = "CREATE TABLE IF NOT EXISTS $table_name (
-            id bigint(20) NOT NULL AUTO_INCREMENT,
-            user_id bigint(20) NOT NULL,
-            points int(11) NOT NULL DEFAULT 0,
-            order_id bigint(20) DEFAULT NULL,
-            action_type varchar(50) NOT NULL,
-            description text,
-            created_at datetime DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY  (id),
-            KEY user_id (user_id),
-            KEY order_id (order_id)
-        ) $charset_collate;";
-
-        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
-        dbDelta($sql);
-    }
-
-    /**
      * Set default plugin options.
      */
     private static function set_default_options() {
-        $default_options = array(
-            'points_enabled' => true,
-            'points_per_dollar' => 1,
-            'points_redemption_rate' => 100,
-            'points_expiry_days' => 365,
-        );
+        $default_options = array();
 
         if (!get_option('sellsuite_settings')) {
             add_option('sellsuite_settings', $default_options);

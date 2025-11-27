@@ -39,7 +39,6 @@ class Loader {
     private function load_dependencies() {
         require_once SELLSUITE_PLUGIN_DIR . 'includes/class-sellsuite-admin.php';
         require_once SELLSUITE_PLUGIN_DIR . 'includes/class-sellsuite-frontend.php';
-        require_once SELLSUITE_PLUGIN_DIR . 'includes/class-sellsuite-points.php';
         require_once SELLSUITE_PLUGIN_DIR . 'includes/class-sellsuite-customers.php';
         require_once SELLSUITE_PLUGIN_DIR . 'includes/class-sellsuite-woocommerce.php';
         require_once SELLSUITE_PLUGIN_DIR . 'includes/helpers.php';
@@ -62,7 +61,6 @@ class Loader {
         $frontend = new Frontend();
 
         $this->add_action('wp_enqueue_scripts', $frontend, 'enqueue_scripts');
-        $this->add_action('woocommerce_before_my_account', $frontend, 'display_customer_points');
         
         // Register the custom WooCommerce My Account endpoint
         $this->add_action('init', $frontend, 'add_products_info_endpoint');
@@ -103,14 +101,6 @@ class Loader {
                 return current_user_can('manage_woocommerce');
             }
         ));
-
-        register_rest_route('sellsuite/v1', '/points/(?P<user_id>\d+)', array(
-            'methods' => 'GET',
-            'callback' => array($this, 'get_user_points'),
-            'permission_callback' => function() {
-                return current_user_can('manage_woocommerce');
-            }
-        ));
     }
 
     /**
@@ -128,15 +118,6 @@ class Loader {
         $settings = $request->get_json_params();
         update_option('sellsuite_settings', $settings);
         return rest_ensure_response(array('success' => true, 'settings' => $settings));
-    }
-
-    /**
-     * Get user points.
-     */
-    public function get_user_points($request) {
-        $user_id = $request->get_param('user_id');
-        $points = Points::get_user_total_points($user_id);
-        return rest_ensure_response(array('user_id' => $user_id, 'points' => $points));
     }
 
     /**
