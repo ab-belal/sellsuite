@@ -30,7 +30,7 @@ class WooCommerce_Integration {
         add_action('woocommerce_admin_order_data_after_order_details', array($this, 'display_order_points_info'));
 
         // Template override: let plugin provide WooCommerce templates from templates/woocommerce/
-        // add_filter('woocommerce_locate_template', array($this, 'locate_plugin_template'), 10, 3);
+        add_filter('woocommerce_locate_template', array($this, 'locate_plugin_template'), 10, 3);
         
     }
 
