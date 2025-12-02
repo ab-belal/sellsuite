@@ -28,6 +28,12 @@ class WooCommerce_Integration {
 
         // Refund handling
         Refund_Handler::init();
+
+        // PHASE 7: Point expiry scheduled processing
+        add_action('sellsuite_process_point_expirations', array($this, 'process_all_expirations'));
+
+        // PHASE 8: Currency exchange rate caching and updates
+        add_action('sellsuite_update_exchange_rates', array($this, 'refresh_exchange_rates'));
     }
 
     public function locate_plugin_template($template, $template_name, $template_path) {
@@ -42,6 +48,55 @@ class WooCommerce_Integration {
         }
 
         return $template;
+    }
+
+    /**
+     * PHASE 7: Process all point expirations for all users.
+     *
+     * This is called by the WordPress scheduled cron job
+     * and processes expired points for all users in the system.
+     */
+    public function process_all_expirations() {
+        try {
+            global $wpdb;
+
+            // Get all users with points
+            $table = $wpdb->prefix . 'sellsuite_points_ledger';
+
+            $user_ids = $wpdb->get_col(
+                "SELECT DISTINCT user_id FROM {$table} WHERE status = 'earned'"
+            );
+
+            if (empty($user_ids)) {
+                return;
+            }
+
+            foreach ($user_ids as $user_id) {
+                Expiry_Handler::process_user_expirations($user_id);
+            }
+
+            do_action('sellsuite_expirations_processed', count($user_ids));
+
+        } catch (Exception $e) {
+            error_log('SellSuite Expiration Processing Error: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * PHASE 8: Refresh exchange rates.
+     *
+     * This is called by the WordPress scheduled cron job
+     * and can be extended to fetch rates from external APIs.
+     */
+    public function refresh_exchange_rates() {
+        try {
+            // This can be extended to fetch rates from external services
+            // For now, it just triggers the action for logging/tracking
+            do_action('sellsuite_exchange_rates_refreshed');
+
+        } catch (Exception $e) {
+            error_log('SellSuite Exchange Rate Refresh Error: ' . $e->getMessage());
+        }
     }
 
 }

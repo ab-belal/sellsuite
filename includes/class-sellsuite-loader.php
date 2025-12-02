@@ -47,6 +47,11 @@ class Loader {
         require_once SELLSUITE_PLUGIN_DIR . 'includes/class-sellsuite-refund-handler.php';
         require_once SELLSUITE_PLUGIN_DIR . 'includes/class-sellsuite-redeem-handler.php';
         require_once SELLSUITE_PLUGIN_DIR . 'includes/class-sellsuite-dashboard.php';
+        require_once SELLSUITE_PLUGIN_DIR . 'includes/class-sellsuite-notification-handler.php';
+        require_once SELLSUITE_PLUGIN_DIR . 'includes/class-sellsuite-email-templates.php';
+        require_once SELLSUITE_PLUGIN_DIR . 'includes/class-sellsuite-admin-handler.php';
+        require_once SELLSUITE_PLUGIN_DIR . 'includes/class-sellsuite-expiry-handler.php';
+        require_once SELLSUITE_PLUGIN_DIR . 'includes/class-sellsuite-currency-handler.php';
         require_once SELLSUITE_PLUGIN_DIR . 'includes/helpers.php';
     }
 
@@ -168,6 +173,186 @@ class Loader {
                 return current_user_can('manage_woocommerce');
             }
         ));
+
+        // Notification endpoints
+        register_rest_route('sellsuite/v1', '/notifications/unread', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_unread_notifications'),
+            'permission_callback' => function() {
+                return is_user_logged_in();
+            }
+        ));
+
+        register_rest_route('sellsuite/v1', '/notifications/(?P<id>\d+)/read', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'mark_notification_read'),
+            'permission_callback' => function() {
+                return is_user_logged_in();
+            }
+        ));
+
+        register_rest_route('sellsuite/v1', '/notifications/preferences', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_notification_preferences'),
+            'permission_callback' => function() {
+                return is_user_logged_in();
+            }
+        ));
+
+        register_rest_route('sellsuite/v1', '/notifications/preferences', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'update_notification_preferences'),
+            'permission_callback' => function() {
+                return is_user_logged_in();
+            }
+        ));
+
+        // Admin endpoints
+        register_rest_route('sellsuite/v1', '/admin/points/assign', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'admin_assign_points'),
+            'permission_callback' => function() {
+                return current_user_can('manage_woocommerce');
+            }
+        ));
+
+        register_rest_route('sellsuite/v1', '/admin/points/deduct', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'admin_deduct_points'),
+            'permission_callback' => function() {
+                return current_user_can('manage_woocommerce');
+            }
+        ));
+
+        register_rest_route('sellsuite/v1', '/admin/points/reset', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'admin_reset_points'),
+            'permission_callback' => function() {
+                return current_user_can('manage_woocommerce');
+            }
+        ));
+
+        register_rest_route('sellsuite/v1', '/admin/audit-log', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_audit_log'),
+            'permission_callback' => function() {
+                return current_user_can('manage_woocommerce');
+            }
+        ));
+
+        register_rest_route('sellsuite/v1', '/admin/action-summary', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_action_summary'),
+            'permission_callback' => function() {
+                return current_user_can('manage_woocommerce');
+            }
+        ));
+
+        // PHASE 7: Point Expiry endpoints
+        register_rest_route('sellsuite/v1', '/expiry/rules', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_expiry_rules'),
+            'permission_callback' => function() {
+                return current_user_can('manage_woocommerce');
+            }
+        ));
+
+        register_rest_route('sellsuite/v1', '/expiry/rules/(?P<id>\d+)', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'update_expiry_rule'),
+            'permission_callback' => function() {
+                return current_user_can('manage_woocommerce');
+            }
+        ));
+
+        register_rest_route('sellsuite/v1', '/expiry/process-user', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'process_user_expirations'),
+            'permission_callback' => function() {
+                return current_user_can('manage_woocommerce');
+            }
+        ));
+
+        register_rest_route('sellsuite/v1', '/expiry/forecast', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_expiry_forecast'),
+            'permission_callback' => function() {
+                return is_user_logged_in();
+            }
+        ));
+
+        register_rest_route('sellsuite/v1', '/expiry/summary', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_expired_summary'),
+            'permission_callback' => function() {
+                return is_user_logged_in();
+            }
+        ));
+
+        register_rest_route('sellsuite/v1', '/expiry/expire', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'manually_expire_points'),
+            'permission_callback' => function() {
+                return current_user_can('manage_woocommerce');
+            }
+        ));
+
+        // PHASE 8: Multi-Currency endpoints
+        register_rest_route('sellsuite/v1', '/currency/convert', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'convert_currency'),
+            'permission_callback' => function() {
+                return is_user_logged_in();
+            }
+        ));
+
+        register_rest_route('sellsuite/v1', '/currency/rates', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_exchange_rates'),
+            'permission_callback' => function() {
+                return current_user_can('manage_woocommerce');
+            }
+        ));
+
+        register_rest_route('sellsuite/v1', '/currency/rates', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'update_exchange_rate'),
+            'permission_callback' => function() {
+                return current_user_can('manage_woocommerce');
+            }
+        ));
+
+        register_rest_route('sellsuite/v1', '/currency/supported', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_supported_currencies'),
+            'permission_callback' => function() {
+                return is_user_logged_in();
+            }
+        ));
+
+        register_rest_route('sellsuite/v1', '/currency/conversions', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_user_conversions'),
+            'permission_callback' => function() {
+                return is_user_logged_in();
+            }
+        ));
+
+        register_rest_route('sellsuite/v1', '/currency/analytics', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_currency_analytics'),
+            'permission_callback' => function() {
+                return current_user_can('manage_woocommerce');
+            }
+        ));
+
+        register_rest_route('sellsuite/v1', '/currency/balance', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_balance_in_currency'),
+            'permission_callback' => function() {
+                return is_user_logged_in();
+            }
+        ));
     }
 
     /**
@@ -272,6 +457,175 @@ class Loader {
     public function get_user_segments($request) {
         $segments = Dashboard::get_user_segments();
         return rest_ensure_response($segments);
+    }
+
+    /**
+     * PHASE 7: Get expiry rules.
+     */
+    public function get_expiry_rules($request) {
+        $rules = Expiry_Handler::get_expiry_rules();
+        return rest_ensure_response($rules);
+    }
+
+    /**
+     * PHASE 7: Update expiry rule.
+     */
+    public function update_expiry_rule($request) {
+        $rule_id = intval($request->get_param('id'));
+        $data = $request->get_json_params();
+
+        $result = Expiry_Handler::update_expiry_rule($rule_id, $data);
+        return rest_ensure_response($result);
+    }
+
+    /**
+     * PHASE 7: Process user expirations.
+     */
+    public function process_user_expirations($request) {
+        $params = $request->get_json_params();
+        $user_id = isset($params['user_id']) ? intval($params['user_id']) : 0;
+
+        if ($user_id <= 0) {
+            return new \WP_Error('invalid_user', 'Invalid user ID', array('status' => 400));
+        }
+
+        $result = Expiry_Handler::process_user_expirations($user_id);
+        return rest_ensure_response($result);
+    }
+
+    /**
+     * PHASE 7: Get expiry forecast for user.
+     */
+    public function get_expiry_forecast($request) {
+        $user_id = get_current_user_id();
+        if (!$user_id) {
+            return new \WP_Error('not_authenticated', 'User not authenticated', array('status' => 401));
+        }
+
+        $days = intval($request->get_param('days')) ?: 30;
+        $forecast = Expiry_Handler::get_expiry_forecast($user_id, $days);
+        return rest_ensure_response($forecast);
+    }
+
+    /**
+     * PHASE 7: Get expired points summary.
+     */
+    public function get_expired_summary($request) {
+        $user_id = get_current_user_id();
+        if (!$user_id) {
+            return new \WP_Error('not_authenticated', 'User not authenticated', array('status' => 401));
+        }
+
+        $summary = Expiry_Handler::get_expired_summary($user_id);
+        return rest_ensure_response($summary);
+    }
+
+    /**
+     * PHASE 7: Manually expire points (admin only).
+     */
+    public function manually_expire_points($request) {
+        $params = $request->get_json_params();
+        $ledger_id = isset($params['ledger_id']) ? intval($params['ledger_id']) : 0;
+        $user_id = isset($params['user_id']) ? intval($params['user_id']) : 0;
+
+        if ($ledger_id <= 0 || $user_id <= 0) {
+            return new \WP_Error('invalid_params', 'Invalid parameters', array('status' => 400));
+        }
+
+        $result = Expiry_Handler::manually_expire_points($ledger_id, $user_id);
+        return rest_ensure_response($result);
+    }
+
+    /**
+     * PHASE 8: Convert currency.
+     */
+    public function convert_currency($request) {
+        $params = $request->get_json_params();
+        $amount = isset($params['amount']) ? floatval($params['amount']) : 0;
+        $from = isset($params['from_currency']) ? sanitize_text_field($params['from_currency']) : 'USD';
+        $to = isset($params['to_currency']) ? sanitize_text_field($params['to_currency']) : 'USD';
+
+        $result = Currency_Handler::convert_currency($amount, $from, $to);
+        return rest_ensure_response($result);
+    }
+
+    /**
+     * PHASE 8: Get exchange rates.
+     */
+    public function get_exchange_rates($request) {
+        global $wpdb;
+        $rates_table = $wpdb->prefix . 'sellsuite_exchange_rates';
+
+        $rates = $wpdb->get_results(
+            "SELECT * FROM {$rates_table} WHERE status = 'active' ORDER BY updated_at DESC"
+        );
+
+        return rest_ensure_response($rates ?: array());
+    }
+
+    /**
+     * PHASE 8: Update exchange rate.
+     */
+    public function update_exchange_rate($request) {
+        $params = $request->get_json_params();
+        $from = isset($params['from_currency']) ? sanitize_text_field($params['from_currency']) : '';
+        $to = isset($params['to_currency']) ? sanitize_text_field($params['to_currency']) : '';
+        $rate = isset($params['rate']) ? floatval($params['rate']) : 0;
+
+        if (empty($from) || empty($to) || $rate <= 0) {
+            return new \WP_Error('invalid_params', 'Invalid parameters', array('status' => 400));
+        }
+
+        $result = Currency_Handler::update_exchange_rate($from, $to, $rate);
+        return rest_ensure_response($result);
+    }
+
+    /**
+     * PHASE 8: Get supported currencies.
+     */
+    public function get_supported_currencies($request) {
+        $currencies = Currency_Handler::get_supported_currencies();
+        return rest_ensure_response($currencies);
+    }
+
+    /**
+     * PHASE 8: Get user conversion history.
+     */
+    public function get_user_conversions($request) {
+        $user_id = get_current_user_id();
+        if (!$user_id) {
+            return new \WP_Error('not_authenticated', 'User not authenticated', array('status' => 401));
+        }
+
+        $limit = intval($request->get_param('limit')) ?: 50;
+        $page = intval($request->get_param('page')) ?: 1;
+        $offset = ($page - 1) * $limit;
+
+        $conversions = Currency_Handler::get_user_conversions($user_id, $limit, $offset);
+        return rest_ensure_response($conversions);
+    }
+
+    /**
+     * PHASE 8: Get currency analytics.
+     */
+    public function get_currency_analytics($request) {
+        $currency = $request->get_param('currency') ?: null;
+        $analytics = Currency_Handler::get_currency_analytics($currency);
+        return rest_ensure_response($analytics);
+    }
+
+    /**
+     * PHASE 8: Get user balance in different currency.
+     */
+    public function get_balance_in_currency($request) {
+        $user_id = get_current_user_id();
+        if (!$user_id) {
+            return new \WP_Error('not_authenticated', 'User not authenticated', array('status' => 401));
+        }
+
+        $currency = $request->get_param('currency') ?: 'USD';
+        $balance = Currency_Handler::get_balance_in_currency($user_id, sanitize_text_field($currency));
+        return rest_ensure_response($balance);
     }
 
     /**
