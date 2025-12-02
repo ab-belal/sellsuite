@@ -41,6 +41,12 @@ class Loader {
         require_once SELLSUITE_PLUGIN_DIR . 'includes/class-sellsuite-frontend.php';
         require_once SELLSUITE_PLUGIN_DIR . 'includes/class-sellsuite-customers.php';
         require_once SELLSUITE_PLUGIN_DIR . 'includes/class-sellsuite-woocommerce.php';
+        require_once SELLSUITE_PLUGIN_DIR . 'includes/class-sellsuite-points-manager.php';
+        require_once SELLSUITE_PLUGIN_DIR . 'includes/class-sellsuite-product-meta.php';
+        require_once SELLSUITE_PLUGIN_DIR . 'includes/class-sellsuite-order-handler.php';
+        require_once SELLSUITE_PLUGIN_DIR . 'includes/class-sellsuite-refund-handler.php';
+        require_once SELLSUITE_PLUGIN_DIR . 'includes/class-sellsuite-redeem-handler.php';
+        require_once SELLSUITE_PLUGIN_DIR . 'includes/class-sellsuite-dashboard.php';
         require_once SELLSUITE_PLUGIN_DIR . 'includes/helpers.php';
     }
 
@@ -86,6 +92,7 @@ class Loader {
      * Register REST API routes.
      */
     public function register_rest_routes() {
+        // Settings endpoints
         register_rest_route('sellsuite/v1', '/settings', array(
             'methods' => 'GET',
             'callback' => array($this, 'get_settings'),
@@ -97,6 +104,66 @@ class Loader {
         register_rest_route('sellsuite/v1', '/settings', array(
             'methods' => 'POST',
             'callback' => array($this, 'update_settings'),
+            'permission_callback' => function() {
+                return current_user_can('manage_woocommerce');
+            }
+        ));
+
+        // Dashboard endpoints
+        register_rest_route('sellsuite/v1', '/dashboard/overview', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_dashboard_overview'),
+            'permission_callback' => function() {
+                return current_user_can('manage_woocommerce');
+            }
+        ));
+
+        register_rest_route('sellsuite/v1', '/dashboard/user', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_user_dashboard'),
+            'permission_callback' => function() {
+                return is_user_logged_in();
+            }
+        ));
+
+        // Points redemption endpoint
+        register_rest_route('sellsuite/v1', '/redeem', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'redeem_points'),
+            'permission_callback' => function() {
+                return is_user_logged_in();
+            }
+        ));
+
+        // Redemption history endpoint
+        register_rest_route('sellsuite/v1', '/redemptions', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_user_redemptions'),
+            'permission_callback' => function() {
+                return is_user_logged_in();
+            }
+        ));
+
+        // Analytics endpoints
+        register_rest_route('sellsuite/v1', '/analytics/timeline', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_timeline'),
+            'permission_callback' => function() {
+                return current_user_can('manage_woocommerce');
+            }
+        ));
+
+        register_rest_route('sellsuite/v1', '/analytics/top-earners', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_top_earners'),
+            'permission_callback' => function() {
+                return current_user_can('manage_woocommerce');
+            }
+        ));
+
+        register_rest_route('sellsuite/v1', '/analytics/segments', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_user_segments'),
             'permission_callback' => function() {
                 return current_user_can('manage_woocommerce');
             }
@@ -118,6 +185,93 @@ class Loader {
         $settings = $request->get_json_params();
         update_option('sellsuite_settings', $settings);
         return rest_ensure_response(array('success' => true, 'settings' => $settings));
+    }
+
+    /**
+     * Get dashboard overview.
+     */
+    public function get_dashboard_overview($request) {
+        $data = Dashboard::get_overview();
+        return rest_ensure_response($data);
+    }
+
+    /**
+     * Get user dashboard.
+     */
+    public function get_user_dashboard($request) {
+        $user_id = get_current_user_id();
+        if (!$user_id) {
+            return new \WP_Error('not_authenticated', 'User not authenticated', array('status' => 401));
+        }
+
+        $data = Dashboard::get_user_dashboard($user_id);
+        return rest_ensure_response($data);
+    }
+
+    /**
+     * Redeem points.
+     */
+    public function redeem_points($request) {
+        $user_id = get_current_user_id();
+        if (!$user_id) {
+            return new \WP_Error('not_authenticated', 'User not authenticated', array('status' => 401));
+        }
+
+        $params = $request->get_json_params();
+        $points = isset($params['points']) ? intval($params['points']) : 0;
+        $order_id = isset($params['order_id']) ? intval($params['order_id']) : 0;
+        $options = isset($params['options']) ? $params['options'] : array();
+
+        // Sanitize options
+        if (is_array($options)) {
+            $options = array_map('sanitize_text_field', $options);
+        }
+
+        $result = Redeem_Handler::redeem_points($user_id, $points, $order_id, $options);
+        return rest_ensure_response($result);
+    }
+
+    /**
+     * Get user redemptions.
+     */
+    public function get_user_redemptions($request) {
+        $user_id = get_current_user_id();
+        if (!$user_id) {
+            return new \WP_Error('not_authenticated', 'User not authenticated', array('status' => 401));
+        }
+
+        $limit = intval($request->get_param('limit')) ?: 20;
+        $page = intval($request->get_param('page')) ?: 1;
+        $offset = ($page - 1) * $limit;
+
+        $redemptions = Redeem_Handler::get_user_redemptions($user_id, $limit, $offset);
+        return rest_ensure_response($redemptions);
+    }
+
+    /**
+     * Get timeline data.
+     */
+    public function get_timeline($request) {
+        $days = intval($request->get_param('days')) ?: 30;
+        $timeline = Dashboard::get_points_timeline($days);
+        return rest_ensure_response($timeline);
+    }
+
+    /**
+     * Get top earners.
+     */
+    public function get_top_earners($request) {
+        $limit = intval($request->get_param('limit')) ?: 10;
+        $earners = Dashboard::get_top_earners($limit);
+        return rest_ensure_response($earners);
+    }
+
+    /**
+     * Get user segments.
+     */
+    public function get_user_segments($request) {
+        $segments = Dashboard::get_user_segments();
+        return rest_ensure_response($segments);
     }
 
     /**

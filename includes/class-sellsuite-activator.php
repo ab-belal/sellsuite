@@ -24,6 +24,9 @@ class Activator {
             );
         }
 
+        // Create database tables
+        self::create_tables();
+
         // Set default options
         self::set_default_options();
 
@@ -39,10 +42,96 @@ class Activator {
     }
 
     /**
+     * Create plugin database tables.
+     */
+    private static function create_tables() {
+        global $wpdb;
+        $charset_collate = $wpdb->get_charset_collate();
+
+        // Drop old tables if they exist to start fresh
+        $wpdb->query("DROP TABLE IF EXISTS {$wpdb->prefix}sellsuite_points_ledger");
+        $wpdb->query("DROP TABLE IF EXISTS {$wpdb->prefix}sellsuite_point_redemptions");
+        $wpdb->query("DROP TABLE IF EXISTS {$wpdb->prefix}sellsuite_points");
+
+        // 1. Points Ledger Table - Permanent audit log of all point transactions
+        $points_ledger_table = $wpdb->prefix . 'sellsuite_points_ledger';
+        $points_ledger_sql = "CREATE TABLE $points_ledger_table (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            user_id bigint(20) NOT NULL,
+            order_id bigint(20) DEFAULT NULL,
+            product_id bigint(20) DEFAULT NULL,
+            action_type varchar(50) NOT NULL DEFAULT 'manual',
+            points_amount int(11) NOT NULL DEFAULT 0,
+            status varchar(30) NOT NULL DEFAULT 'earned',
+            description text,
+            notes text,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            expires_at datetime DEFAULT NULL,
+            PRIMARY KEY  (id),
+            KEY user_id (user_id),
+            KEY order_id (order_id),
+            KEY product_id (product_id),
+            KEY status (status),
+            KEY action_type (action_type),
+            KEY created_at (created_at)
+        ) $charset_collate;";
+
+        // 2. Point Redemptions Table - Track point redemptions separately
+        $redemptions_table = $wpdb->prefix . 'sellsuite_point_redemptions';
+        $redemptions_sql = "CREATE TABLE $redemptions_table (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            user_id bigint(20) NOT NULL,
+            order_id bigint(20) NOT NULL,
+            ledger_id bigint(20) NOT NULL,
+            redeemed_points int(11) NOT NULL DEFAULT 0,
+            discount_value decimal(10, 2) NOT NULL DEFAULT 0.00,
+            conversion_rate decimal(10, 4) NOT NULL DEFAULT 1.0000,
+            currency varchar(10) DEFAULT 'USD',
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            notes text,
+            PRIMARY KEY  (id),
+            KEY user_id (user_id),
+            KEY order_id (order_id),
+            KEY ledger_id (ledger_id),
+            KEY created_at (created_at)
+        ) $charset_collate;";
+
+        // 3. Old points table (legacy support)
+        $old_points_table = $wpdb->prefix . 'sellsuite_points';
+        $old_points_sql = "CREATE TABLE $old_points_table (
+            id bigint(20) NOT NULL AUTO_INCREMENT,
+            user_id bigint(20) NOT NULL,
+            points int(11) NOT NULL DEFAULT 0,
+            order_id bigint(20) DEFAULT NULL,
+            action_type varchar(50) NOT NULL,
+            description text,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id),
+            KEY user_id (user_id),
+            KEY order_id (order_id)
+        ) $charset_collate;";
+
+        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+        dbDelta($points_ledger_sql);
+        dbDelta($redemptions_sql);
+        dbDelta($old_points_sql);
+    }
+
+    /**
      * Set default plugin options.
      */
     private static function set_default_options() {
-        $default_options = array();
+        $default_options = array(
+            // Points System Settings
+            'points_enabled' => true,
+            'conversion_rate' => 1,  // 1 point = 1 currency unit
+            'max_redeemable_percentage' => 20,  // Can redeem up to 20% of order
+            'enable_expiry' => false,
+            'expiry_days' => 365,
+            'point_calculation_method' => 'fixed',  // 'fixed' or 'percentage'
+            'points_per_dollar' => 1,  // For fixed method
+            'points_percentage' => 0,   // For percentage method (% of product price)
+        );
 
         if (!get_option('sellsuite_settings')) {
             add_option('sellsuite_settings', $default_options);
