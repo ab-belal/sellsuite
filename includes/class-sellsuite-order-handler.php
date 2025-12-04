@@ -123,10 +123,6 @@ class Order_Handler {
      * @return void
      */
     public static function on_order_status_changed($order_id, $old_status, $new_status) {
-        if ($new_status !== 'completed') {
-            return;
-        }
-
         try {
             $order = wc_get_order($order_id);
             if (!$order) {
@@ -138,13 +134,11 @@ class Order_Handler {
                 return;
             }
 
-            // Get the pending points entry
             global $wpdb;
             $ledger = $wpdb->get_row(
                 $wpdb->prepare(
-                    "SELECT * FROM {$wpdb->prefix}sellsuite_points_ledger WHERE id = %d AND status = %s",
-                    $ledger_id,
-                    'pending'
+                    "SELECT * FROM {$wpdb->prefix}sellsuite_points_ledger WHERE id = %d",
+                    $ledger_id
                 )
             );
 
@@ -152,22 +146,66 @@ class Order_Handler {
                 return;
             }
 
-            // Update status from pending to earned with updated description
-            global $wpdb;
             $table = $wpdb->prefix . 'sellsuite_points_ledger';
-            $wpdb->update(
-                $table,
-                array(
-                    'status' => 'earned',
-                    'description' => sprintf(__('Points earned from order #%d - Order completed', 'sellsuite'), $order_id),
-                    'notes' => __('Order completed - points earned', 'sellsuite')
-                ),
-                array('id' => $ledger_id),
-                array('%s', '%s', '%s'),
-                array('%d')
-            );
 
-            do_action('sellsuite_points_earned', $order_id, $ledger->user_id, $ledger->points_amount);
+            // Handle order completion - transition pending to earned
+            if ($new_status === 'completed') {
+                $wpdb->update(
+                    $table,
+                    array(
+                        'status' => 'earned',
+                        'description' => sprintf(__('Points earned from order #%d - Order completed', 'sellsuite'), $order_id),
+                        'notes' => __('Order completed - points earned', 'sellsuite')
+                    ),
+                    array('id' => $ledger_id),
+                    array('%s', '%s', '%s'),
+                    array('%d')
+                );
+            }
+            // Handle order cancellation - mark points as cancelled
+            elseif ($new_status === 'cancelled') {
+                $wpdb->update(
+                    $table,
+                    array(
+                        'status' => 'cancelled',
+                        'description' => sprintf(__('Points cancelled - Order #%d was cancelled', 'sellsuite'), $order_id),
+                        'notes' => __('Order cancelled - points cancelled', 'sellsuite')
+                    ),
+                    array('id' => $ledger_id),
+                    array('%s', '%s', '%s'),
+                    array('%d')
+                );
+            }
+            // Handle order refund - mark points as refunded
+            elseif ($new_status === 'refunded') {
+                $wpdb->update(
+                    $table,
+                    array(
+                        'status' => 'refunded',
+                        'description' => sprintf(__('Points refunded - Order #%d was refunded', 'sellsuite'), $order_id),
+                        'notes' => __('Order refunded - points deducted', 'sellsuite')
+                    ),
+                    array('id' => $ledger_id),
+                    array('%s', '%s', '%s'),
+                    array('%d')
+                );
+            }
+            // Handle order pending (processing) - keep as pending
+            elseif ($new_status === 'pending') {
+                $wpdb->update(
+                    $table,
+                    array(
+                        'status' => 'pending',
+                        'description' => sprintf(__('Points pending - Order #%d is being processed', 'sellsuite'), $order_id),
+                        'notes' => __('Order pending - points pending', 'sellsuite')
+                    ),
+                    array('id' => $ledger_id),
+                    array('%s', '%s', '%s'),
+                    array('%d')
+                );
+            }
+
+            do_action('sellsuite_points_status_updated', $order_id, $ledger->user_id, $new_status);
 
         } catch (\Exception $e) {
             error_log('SellSuite Status Change Error: ' . $e->getMessage());

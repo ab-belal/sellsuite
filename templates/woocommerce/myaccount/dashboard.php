@@ -78,7 +78,17 @@ if ( function_exists( 'wc_get_products' ) ) {
 				// Get points data
 				$earned_points = \SellSuite\Points::get_earned_points( $user_id );
 				$available_balance = \SellSuite\Points::get_available_balance( $user_id );
-				$pending_points = \SellSuite\Points::get_pending_points( $user_id );
+				
+				// Get pending points from valid/active orders only (excluding cancelled and refunded)
+				global $wpdb;
+				$table = $wpdb->prefix . 'sellsuite_points_ledger';
+				$pending_points = $wpdb->get_var( $wpdb->prepare(
+					"SELECT COALESCE(SUM(points_amount), 0) FROM {$table} 
+					WHERE user_id = %d AND status = 'pending' 
+					AND action_type IN ('order_placement', 'purchase')",
+					$user_id
+				) );
+				$pending_points = intval( $pending_points );
 				?>
 
 				<!-- Total Earned -->
@@ -112,11 +122,6 @@ if ( function_exists( 'wc_get_products' ) ) {
 				<?php endif; ?>
 			</div>
 
-			<div style="margin-top: 12px; text-align: center;">
-				<a href="<?php echo esc_url( wc_get_account_endpoint_url( 'dashboard' ) ); ?>" style="color: #667eea; font-size: 12px; text-decoration: none; font-weight: 500;">
-					<?php esc_html_e( 'View Points History', 'sellsuite' ); ?> →
-				</a>
-			</div>
 		</div>
 	<?php endif; ?>
 	
@@ -195,7 +200,7 @@ if ( function_exists( 'wc_get_products' ) ) {
 										}
 									}
 									
-									// Status badge styling
+									// Status badge styling - based on point status
 									$status_color = '#28a745';
 									$status_bg = '#d4edda';
 									$status_text = 'Earned';
@@ -203,7 +208,7 @@ if ( function_exists( 'wc_get_products' ) ) {
 									if ( $status === 'pending' ) {
 										$status_color = '#ffc107';
 										$status_bg = '#fff3cd';
-										$status_text = 'Pending';
+										$status_text = '⏳ Pending';
 									} elseif ( $status === 'redeemed' ) {
 										$status_color = '#6c757d';
 										$status_bg = '#e2e3e5';
@@ -214,8 +219,12 @@ if ( function_exists( 'wc_get_products' ) ) {
 										$status_text = 'Expired';
 									} elseif ( $status === 'refunded' ) {
 										$status_color = '#fd7e14';
-										$status_bg = '#fff3cd';
+										$status_bg = '#ffe5cc';
 										$status_text = 'Refunded';
+									} elseif ( $status === 'cancelled' ) {
+										$status_color = '#dc3545';
+										$status_bg = '#f8d7da';
+										$status_text = 'Cancelled';
 									}
 									?>
 									<tr style="border-bottom: 1px solid #eee; transition: background-color 0.2s;">
