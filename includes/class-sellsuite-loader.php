@@ -48,6 +48,7 @@ class Loader {
         require_once SELLSUITE_PLUGIN_DIR . 'includes/class-sellsuite-refund-handler.php';
         require_once SELLSUITE_PLUGIN_DIR . 'includes/class-sellsuite-redeem-handler.php';
         require_once SELLSUITE_PLUGIN_DIR . 'includes/class-sellsuite-dashboard.php';
+        require_once SELLSUITE_PLUGIN_DIR . 'includes/class-sellsuite-dashboard-data.php';
         require_once SELLSUITE_PLUGIN_DIR . 'includes/class-sellsuite-notification-handler.php';
         require_once SELLSUITE_PLUGIN_DIR . 'includes/class-sellsuite-email-templates.php';
         require_once SELLSUITE_PLUGIN_DIR . 'includes/class-sellsuite-admin-handler.php';
