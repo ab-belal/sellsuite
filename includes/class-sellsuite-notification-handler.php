@@ -48,7 +48,7 @@ class Notification_Handler {
                 'user_name' => $user->display_name,
                 'order_id' => $order_id,
                 'points' => $points,
-                'available_balance' => Points_Manager::get_available_balance($user_id),
+                'available_balance' => Points::get_available_balance($user_id),
                 'email' => $user->user_email,
             );
 
@@ -92,7 +92,7 @@ class Notification_Handler {
                 'user_name' => $user->display_name,
                 'order_id' => $order_id,
                 'points' => $points,
-                'available_balance' => Points_Manager::get_available_balance($user_id),
+                'available_balance' => Points::get_available_balance($user_id),
                 'email' => $user->user_email,
             );
 
@@ -141,7 +141,7 @@ class Notification_Handler {
                 'discount_value' => $discount_value,
                 'order_id' => $order_id,
                 'redemption_id' => $redemption_id,
-                'remaining_balance' => Points_Manager::get_available_balance($user_id),
+                'remaining_balance' => Points::get_available_balance($user_id),
                 'email' => $user->user_email,
             );
 
@@ -184,7 +184,7 @@ class Notification_Handler {
                 'order_id' => $order_id,
                 'refund_id' => $refund_id,
                 'points_deducted' => $points_deducted,
-                'remaining_balance' => Points_Manager::get_available_balance($user_id),
+                'remaining_balance' => Points::get_available_balance($user_id),
                 'email' => $user->user_email,
             );
 
@@ -225,7 +225,7 @@ class Notification_Handler {
                 'user_name' => $user->display_name,
                 'redemption_id' => $redemption_id,
                 'points_restored' => $points_restored,
-                'available_balance' => Points_Manager::get_available_balance($user_id),
+                'available_balance' => Points::get_available_balance($user_id),
                 'email' => $user->user_email,
             );
 

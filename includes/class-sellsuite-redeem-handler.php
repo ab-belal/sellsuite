@@ -30,7 +30,7 @@ class Redeem_Handler {
             }
 
             // Validate points system
-            if (!Points_Manager::is_enabled()) {
+            if (!Points::is_enabled()) {
                 return array(
                     'success' => false,
                     'message' => __('Points system is disabled', 'sellsuite'),
@@ -49,7 +49,7 @@ class Redeem_Handler {
             }
 
             // Get user's available balance
-            $available_balance = Points_Manager::get_available_balance($user_id);
+            $available_balance = Points::get_available_balance($user_id);
             if ($available_balance < $points) {
                 return array(
                     'success' => false,
@@ -64,7 +64,7 @@ class Redeem_Handler {
             }
 
             // Get settings for conversion
-            $settings = Points_Manager::get_settings();
+            $settings = Points::get_settings();
             $conversion_rate = isset($options['conversion_rate']) ? floatval($options['conversion_rate']) : $settings['conversion_rate'];
             $currency = isset($options['currency']) ? sanitize_text_field($options['currency']) : 'USD';
 
@@ -114,15 +114,13 @@ class Redeem_Handler {
             $redemption_id = $wpdb->insert_id;
 
             // Create ledger deduction entry
-            $ledger_id = Points_Manager::add_ledger_entry(
+            $ledger_id = Points::add_ledger_entry(
                 $user_id,
-                intval($order_id),
-                0,
+                $points,
                 'redemption',
-                -$points,
-                'earned',
                 sprintf(__('Points redeemed for discount: %s %s', 'sellsuite'), $discount_value, $currency),
-                $redemption_id
+                'redeemed',
+                intval($order_id) > 0 ? intval($order_id) : null
             );
 
             if (!$ledger_id) {
@@ -216,15 +214,13 @@ class Redeem_Handler {
             }
 
             // Add back the points
-            $restore_ledger_id = Points_Manager::add_ledger_entry(
+            $restore_ledger_id = Points::add_ledger_entry(
                 $redemption->user_id,
-                $redemption->order_id,
-                0,
-                'redemption_reversal',
                 $redemption->redeemed_points,
-                'earned',
+                'redemption_reversal',
                 sprintf(__('Redemption #%d canceled - points restored', 'sellsuite'), $redemption_id),
-                $redemption_id
+                'earned',
+                $redemption->order_id > 0 ? intval($redemption->order_id) : null
             );
 
             if (!$restore_ledger_id) {

@@ -47,7 +47,7 @@ class Admin_Handler {
             }
 
             // Create ledger entry
-            $ledger_id = Points_Manager::add_ledger_entry(
+            $ledger_id = Points::add_ledger_entry(
                 $user_id,
                 0,
                 0,
@@ -130,7 +130,7 @@ class Admin_Handler {
             }
 
             // Check available balance
-            $available = Points_Manager::get_available_balance($user_id);
+            $available = Points::get_available_balance($user_id);
             if ($available < $points) {
                 return array(
                     'success' => false,
@@ -143,7 +143,7 @@ class Admin_Handler {
             }
 
             // Create ledger entry
-            $ledger_id = Points_Manager::add_ledger_entry(
+            $ledger_id = Points::add_ledger_entry(
                 $user_id,
                 0,
                 0,
@@ -219,11 +219,11 @@ class Admin_Handler {
             }
 
             // Get current balance
-            $current_balance = Points_Manager::get_available_balance($user_id);
+            $current_balance = Points::get_available_balance($user_id);
 
             if ($current_balance > 0) {
                 // Create deduction ledger entry for total balance
-                $ledger_id = Points_Manager::add_ledger_entry(
+                $ledger_id = Points::add_ledger_entry(
                     $user_id,
                     0,
                     0,
@@ -381,7 +381,7 @@ class Admin_Handler {
             );
         }
 
-        if (!Points_Manager::is_enabled()) {
+        if (!Points::is_enabled()) {
             return array(
                 'valid' => false,
                 'message' => __('Points system is disabled', 'sellsuite'),

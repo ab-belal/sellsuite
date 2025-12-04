@@ -21,7 +21,7 @@ class Points {
         // Get sum of earned and pending points (excluding refunded/cancelled)
         $available = $wpdb->get_var($wpdb->prepare(
             "SELECT COALESCE(SUM(points_amount), 0) FROM $table 
-             WHERE user_id = %d AND status IN ('earned', 'pending') AND (expires_at IS NULL OR expires_at > NOW())",
+             WHERE user_id = %d AND status IN ('earned') AND (expires_at IS NULL OR expires_at > NOW())",
             $user_id
         ));
 
@@ -40,7 +40,7 @@ class Points {
 
         $total = $wpdb->get_var($wpdb->prepare(
             "SELECT COALESCE(SUM(points_amount), 0) FROM $table 
-             WHERE user_id = %d AND status IN ('earned', 'pending', 'redeemed')",
+             WHERE user_id = %d AND status IN ('earned', 'redeemed')",
             $user_id
         ));
 

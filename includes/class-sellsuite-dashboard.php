@@ -37,11 +37,11 @@ class Dashboard {
      */
     public static function get_user_dashboard($user_id) {
         return array(
-            'total_earned' => Points_Manager::get_earned_points($user_id),
-            'available_balance' => Points_Manager::get_available_balance($user_id),
-            'pending_points' => Points_Manager::get_pending_points($user_id),
+            'total_earned' => Points::get_earned_points($user_id),
+            'available_balance' => Points::get_available_balance($user_id),
+            'pending_points' => Points::get_pending_points($user_id),
             'total_redeemed' => Redeem_Handler::get_total_redeemed($user_id),
-            'recent_transactions' => Points_Manager::get_history($user_id, 10, array()),
+            'recent_transactions' => Points::get_history($user_id, 10, array()),
             'recent_redemptions' => Redeem_Handler::get_user_redemptions($user_id, 5),
         );
     }

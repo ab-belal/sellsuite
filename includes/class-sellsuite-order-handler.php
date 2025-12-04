@@ -46,7 +46,7 @@ class Order_Handler {
             }
 
             // Check if points system is enabled
-            if (!Points_Manager::is_enabled()) {
+            if (!Points::is_enabled()) {
                 return false;
             }
 
@@ -56,6 +56,7 @@ class Order_Handler {
             }
 
             $total_points = 0;
+            $product_ids = array();
 
             // Calculate points for each line item
             foreach ($order->get_items() as $item) {
@@ -68,6 +69,7 @@ class Order_Handler {
                 $item_points = $product_points * $quantity;
 
                 $total_points += $item_points;
+                $product_ids[] = $product_id;
 
                 // Log individual product point awarding
                 do_action('sellsuite_product_points_awarded', $product_id, $quantity, $item_points, $order_id);
@@ -79,16 +81,16 @@ class Order_Handler {
             }
 
             if ($total_points > 0) {
-                // Add pending points entry
-                $ledger_id = Points_Manager::add_ledger_entry(
+                // Add pending points entry (save first product_id if available)
+                $first_product_id = !empty($product_ids) ? $product_ids[0] : null;
+                $ledger_id = Points::add_ledger_entry(
                     $user_id,
-                    $order_id,
-                    0,
-                    'order_placement',
                     $total_points,
-                    'pending',
+                    'order_placement',
                     __('Points pending for order confirmation', 'sellsuite'),
-                    null
+                    'pending',
+                    $order_id,
+                    $first_product_id
                 );
 
                 // Mark order as processed
@@ -150,11 +152,19 @@ class Order_Handler {
                 return;
             }
 
-            // Update status from pending to earned
-            Points_Manager::update_ledger_status(
-                $ledger_id,
-                'earned',
-                __('Order completed - points earned', 'sellsuite')
+            // Update status from pending to earned with updated description
+            global $wpdb;
+            $table = $wpdb->prefix . 'sellsuite_points_ledger';
+            $wpdb->update(
+                $table,
+                array(
+                    'status' => 'earned',
+                    'description' => sprintf(__('Points earned from order #%d - Order completed', 'sellsuite'), $order_id),
+                    'notes' => __('Order completed - points earned', 'sellsuite')
+                ),
+                array('id' => $ledger_id),
+                array('%s', '%s', '%s'),
+                array('%d')
             );
 
             do_action('sellsuite_points_earned', $order_id, $ledger->user_id, $ledger->points_amount);
@@ -219,15 +229,13 @@ class Order_Handler {
 
             if ($points_to_deduct > 0) {
                 // Add deduction entry
-                Points_Manager::add_ledger_entry(
+                Points::add_ledger_entry(
                     $user_id,
-                    $order_id,
-                    0,
+                    $points_to_deduct,
                     'refund',
-                    -$points_to_deduct,
-                    'earned',
                     __('Points deducted due to order refund', 'sellsuite'),
-                    $refund_id
+                    'refunded',
+                    $order_id
                 );
 
                 // Mark refund as processed
@@ -248,7 +256,7 @@ class Order_Handler {
      * @return int Total points
      */
     private static function calculate_order_points($order) {
-        $settings = Points_Manager::get_settings();
+        $settings = Points::get_settings();
         $order_total = $order->get_total();
 
         if ($settings['point_calculation_method'] === 'percentage') {
@@ -330,7 +338,7 @@ class Order_Handler {
             );
         }
 
-        if (!Points_Manager::is_enabled()) {
+        if (!Points::is_enabled()) {
             return array(
                 'valid' => false,
                 'message' => __('Points system is disabled', 'sellsuite'),

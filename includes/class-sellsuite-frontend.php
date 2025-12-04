@@ -32,6 +32,27 @@ class Frontend {
     }
 
     /**
+     * Register frontend points display hooks.
+     */
+    public function register_frontend_hooks() {
+        // Product page points display
+        add_action('woocommerce_after_add_to_cart_button', array('SellSuite_Frontend_Display', 'display_product_points'));
+
+        // Cart page points display
+        add_action('woocommerce_after_cart_item_name', array('SellSuite_Frontend_Display', 'display_cart_item_points'), 10, 2);
+
+        // Checkout review order table points row
+        add_action('woocommerce_review_order_before_order_total', array('SellSuite_Frontend_Display', 'add_checkout_points_row'));
+
+        // Thank you page points display
+        add_action('woocommerce_thankyou', array('SellSuite_Frontend_Display', 'display_thankyou_points'), 5, 1);
+        add_action('woocommerce_thankyou', array('SellSuite_Frontend_Display', 'display_thankyou_balance'), 15, 1);
+
+        // Inline CSS for points display
+        add_action('wp_head', array('SellSuite_Frontend_Display', 'add_inline_css'));
+    }
+
+    /**
      * Register custom WooCommerce My Account endpoint.
      * 
      * This method adds a new endpoint called 'products-info' to WooCommerce.

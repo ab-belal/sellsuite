@@ -39,6 +39,7 @@ class Loader {
     private function load_dependencies() {
         require_once SELLSUITE_PLUGIN_DIR . 'includes/class-sellsuite-admin.php';
         require_once SELLSUITE_PLUGIN_DIR . 'includes/class-sellsuite-frontend.php';
+        require_once SELLSUITE_PLUGIN_DIR . 'includes/class-sellsuite-frontend-display.php';
         require_once SELLSUITE_PLUGIN_DIR . 'includes/class-sellsuite-customers.php';
         require_once SELLSUITE_PLUGIN_DIR . 'includes/class-sellsuite-woocommerce.php';
         require_once SELLSUITE_PLUGIN_DIR . 'includes/class-sellsuite-points-manager.php';
@@ -72,6 +73,7 @@ class Loader {
         $frontend = new Frontend();
 
         $this->add_action('wp_enqueue_scripts', $frontend, 'enqueue_scripts');
+        $this->add_action('init', $frontend, 'register_frontend_hooks');
         
         // Register the custom WooCommerce My Account endpoint
         $this->add_action('init', $frontend, 'add_products_info_endpoint');

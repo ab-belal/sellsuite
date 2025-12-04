@@ -54,15 +54,13 @@ class Refund_Handler {
 
             if ($order_points && $order_points->total_points > 0) {
                 // Deduct all points
-                Points_Manager::add_ledger_entry(
+                Points::add_ledger_entry(
                     $user_id,
-                    $order_id,
-                    0,
+                    $order_points->total_points,
                     'full_refund',
-                    -$order_points->total_points,
-                    'earned',
                     __('All points deducted due to full refund', 'sellsuite'),
-                    $refund_id
+                    'refunded',
+                    $order_id
                 );
 
                 update_post_meta($refund_id, '_full_refund_points_processed', true);
@@ -131,15 +129,13 @@ class Refund_Handler {
                 $points_to_deduct = floor($order_points->total_points * $proportion);
 
                 if ($points_to_deduct > 0) {
-                    Points_Manager::add_ledger_entry(
+                    Points::add_ledger_entry(
                         $user_id,
-                        $order_id,
-                        0,
+                        $points_to_deduct,
                         'partial_refund',
-                        -$points_to_deduct,
-                        'earned',
                         sprintf(__('Points deducted for partial refund (%.2f%% of order)', 'sellsuite'), $proportion * 100),
-                        $refund_id
+                        'refunded',
+                        $order_id
                     );
 
                     do_action('sellsuite_points_deducted_partial_refund', $order_id, $user_id, $points_to_deduct);
@@ -203,15 +199,13 @@ class Refund_Handler {
 
             if ($deduction) {
                 // Reverse the deduction (add back points)
-                Points_Manager::add_ledger_entry(
+                Points::add_ledger_entry(
                     $user_id,
-                    $order_id,
-                    0,
-                    'refund_reversal',
                     abs($deduction->points_amount),
-                    'earned',
+                    'refund_reversal',
                     __('Points restored - refund was canceled', 'sellsuite'),
-                    $refund_id
+                    'earned',
+                    $order_id
                 );
 
                 delete_post_meta($refund_id, '_full_refund_points_processed');
