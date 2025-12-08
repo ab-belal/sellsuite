@@ -64,8 +64,8 @@ class Order_Handler {
                 $quantity = $item->get_quantity();
                 $line_total = $item->get_total();
 
-                // Get product points (fixed or percentage-based)
-                $product_points = Product_Meta::get_product_points($product_id, $line_total / $quantity);
+                // Get product points with priority: custom value > calculated from global setting
+                $product_points = Points::get_product_display_points($product_id, $line_total / $quantity);
                 $item_points = $product_points * $quantity;
 
                 $total_points += $item_points;

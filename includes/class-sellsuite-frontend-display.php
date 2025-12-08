@@ -33,7 +33,7 @@ class SellSuite_Frontend_Display {
         }
 
         $product_id = $product->get_id();
-        $points = \SellSuite\Product_Meta::get_product_points($product_id);
+        $points = \SellSuite\Points::get_product_display_points($product_id);
 
         if ($points <= 0) {
             return;
@@ -73,7 +73,7 @@ class SellSuite_Frontend_Display {
             $quantity = $cart_item['quantity'];
             
             $product_id = $product->get_id();
-            $points = \SellSuite\Product_Meta::get_product_points($product_id);
+            $points = \SellSuite\Points::get_product_display_points($product_id);
             
             $total_points += ($points * $quantity);
         }
@@ -161,45 +161,6 @@ class SellSuite_Frontend_Display {
     }
 
     /**
-     * Display user's current points balance on thank you page
-     *
-     * Hook: woocommerce_thankyou (After displaying order)
-     *
-     * @param int $order_id Order ID
-     */
-    public static function display_thankyou_balance($order_id) {
-        if (!is_user_logged_in()) {
-            return;
-        }
-
-        $user_id = get_current_user_id();
-        if ($user_id <= 0) {
-            return;
-        }
-
-        $balance = \SellSuite\Points::get_available_balance($user_id);
-        $balance = intval($balance);
-
-        if ($balance < 0) {
-            return;
-        }
-
-        ?>
-        <div class="sellsuite-thankyou-balance">
-            <h3><?php esc_html_e('Your Points Balance', 'sellsuite'); ?></h3>
-            <div class="balance-info-box">
-                <div class="balance-display">
-                    <span class="balance-label"><?php esc_html_e('Total Points:', 'sellsuite'); ?></span>
-                    <span class="balance-amount">
-                        <i class="fas fa-coins"></i> <?php echo intval($balance); ?>
-                    </span>
-                </div>
-            </div>
-        </div>
-        <?php
-    }
-
-    /**
      * Display product points in cart items
      *
      * Hook: woocommerce_after_cart_item_name (in cart page)
@@ -212,7 +173,7 @@ class SellSuite_Frontend_Display {
         $quantity = $cart_item['quantity'];
 
         $product_id = $product->get_id();
-        $points = \SellSuite\Product_Meta::get_product_points($product_id);
+        $points = \SellSuite\Points::get_product_display_points($product_id);
 
         if ($points <= 0) {
             return;
