@@ -46,7 +46,6 @@ class Frontend {
 
         // Thank you page points display
         add_action('woocommerce_thankyou', array('SellSuite_Frontend_Display', 'display_thankyou_points'), 5, 1);
-        add_action('woocommerce_thankyou', array('SellSuite_Frontend_Display', 'display_thankyou_balance'), 15, 1);
 
         // Inline CSS for points display
         add_action('wp_head', array('SellSuite_Frontend_Display', 'add_inline_css'));

@@ -67,7 +67,7 @@ if ( function_exists( 'wc_get_products' ) ) {
 	</div>
 
 	<!-- SellSuite Rewards Points Section -->
-	<?php if ( class_exists( 'SellSuite\Points' ) && \SellSuite\Points::is_enabled() ) : ?>
+	<?php if ( class_exists( 'SellSuite\Points' ) ) : ?>
 		<div class="rewards-points-summary" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;">
 			<h4 style="margin-bottom: 15px; font-size: 14px; font-weight: 600; color: #333;">Reward Points</h4>
 			
@@ -111,7 +111,7 @@ if ( function_exists( 'wc_get_products' ) ) {
 	
 
 	<!-- SellSuite Points History Table -->
-	<?php if ( class_exists( 'SellSuite\Points' ) && \SellSuite\Points::is_enabled() ) : ?>
+	<?php if ( class_exists( 'SellSuite\Points' ) ) : ?>
 		<div class="points-history-card card">
 			<div class="card-head">
 				<h3>Points Earning History</h3>

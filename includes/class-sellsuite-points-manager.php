@@ -311,7 +311,7 @@ class Points {
         $points = floor($order_total * $points_per_dollar);
 
         // Award points
-        return self::add_ledger_entry(
+            return self::add_ledger_entry(
             $user_id,
             $points,
             'order_complete',
@@ -319,5 +319,94 @@ class Points {
             'earned',
             $order_id
         );
+    }
+
+    /**
+     * Calculate display points for a product with priority logic.
+     * 
+     * Priority:
+     * 1. Custom product reward points (if set)
+     * 2. Fallback: Automatic calculation using price × Points Per Dollar setting
+     * 
+     * @param int   $product_id Product ID
+     * @param float $price Optional price (uses product price if not provided)
+     * @return int Display points
+     */
+    public static function get_product_display_points($product_id, $price = null) {
+        // First priority: Check for custom product points
+        $custom_points = \SellSuite\Product_Meta::get_product_points($product_id, $price);
+        
+        if ($custom_points > 0) {
+            return $custom_points;
+        }
+
+        // Fallback: Calculate based on global "Points Per Dollar" setting
+        $product = wc_get_product($product_id);
+        if (!$product) {
+            return 0;
+        }
+
+        // Get price
+        if ($price === null) {
+            $price = floatval($product->get_price());
+        } else {
+            $price = floatval($price);
+        }
+
+        if ($price <= 0) {
+            return 0;
+        }
+
+        // Get Points Per Dollar from settings
+        $settings = self::get_settings();
+        $points_per_dollar = isset($settings['points_per_dollar']) ? floatval($settings['points_per_dollar']) : 1;
+
+        // Calculate: price × points_per_dollar
+        return intval(floor($price * $points_per_dollar));
+    }
+
+    /**
+     * Calculate display points for a product variation with priority logic.
+     * 
+     * Priority:
+     * 1. Custom variation reward points (if set)
+     * 2. Custom parent product reward points (if set)
+     * 3. Fallback: Automatic calculation using price × Points Per Dollar setting
+     * 
+     * @param int   $variation_id Variation ID
+     * @param float $price Optional price (uses variation price if not provided)
+     * @return int Display points
+     */
+    public static function get_variation_display_points($variation_id, $price = null) {
+        // First priority: Check for custom variation points
+        $custom_points = \SellSuite\Product_Meta::get_variation_points($variation_id, $price);
+        
+        if ($custom_points > 0) {
+            return $custom_points;
+        }
+
+        // Fallback: Calculate based on global "Points Per Dollar" setting
+        $variation = wc_get_product($variation_id);
+        if (!$variation) {
+            return 0;
+        }
+
+        // Get price
+        if ($price === null) {
+            $price = floatval($variation->get_price());
+        } else {
+            $price = floatval($price);
+        }
+
+        if ($price <= 0) {
+            return 0;
+        }
+
+        // Get Points Per Dollar from settings
+        $settings = self::get_settings();
+        $points_per_dollar = isset($settings['points_per_dollar']) ? floatval($settings['points_per_dollar']) : 1;
+
+        // Calculate: price × points_per_dollar
+        return intval(floor($price * $points_per_dollar));
     }
 }
