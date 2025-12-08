@@ -134,15 +134,6 @@ class Loader {
             }
         ));
 
-        // Variation points endpoint (for dynamic frontend updates)
-        register_rest_route('sellsuite/v1', '/products/(?P<variation_id>\d+)/points', array(
-            'methods' => 'GET',
-            'callback' => array($this, 'get_variation_points'),
-            'permission_callback' => function() {
-                return true; // Public - anyone can get product variation points
-            }
-        ));
-
         // Points redemption endpoint
         register_rest_route('sellsuite/v1', '/redeem', array(
             'methods' => 'POST',
@@ -402,41 +393,6 @@ class Loader {
         }
 
         $data = Dashboard::get_user_dashboard($user_id);
-        return rest_ensure_response($data);
-    }
-
-    /**
-     * Get variation reward points (for dynamic frontend updates).
-     * 
-     * Returns the reward points for a product variation based on:
-     * 1. Custom variation points (if set)
-     * 2. Calculated points (variation_price × points_per_dollar)
-     * 
-     * @param WP_REST_Request $request The request object
-     * @return WP_REST_Response|WP_Error
-     */
-    public function get_variation_points($request) {
-        $variation_id = intval($request->get_param('variation_id'));
-        
-        if ($variation_id <= 0) {
-            return new \WP_Error('invalid_variation', 'Invalid variation ID', array('status' => 400));
-        }
-
-        // Get variation product
-        $variation = wc_get_product($variation_id);
-        if (!$variation || !$variation->is_type('variation')) {
-            return new \WP_Error('not_found', 'Variation not found', array('status' => 404));
-        }
-
-        // Get points using the display logic (priority: custom first, then calculate)
-        $points = Points::get_variation_display_points($variation_id);
-        
-        $data = array(
-            'variation_id' => $variation_id,
-            'points' => $points,
-            'price' => $variation->get_price(),
-        );
-
         return rest_ensure_response($data);
     }
 

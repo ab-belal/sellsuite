@@ -45,10 +45,6 @@ class Product_Meta {
     /**
      * Get variation reward points.
      * 
-     * For variations:
-     * 1. If custom value is set → use it
-     * 2. If not set → do NOT use parent, return custom value OR calculate from price
-     * 
      * @param int   $variation_id Variation ID
      * @param float $price Optional price for percentage calculation
      * @return int Points value
@@ -73,8 +69,12 @@ class Product_Meta {
             return intval($variation_points);
         }
 
-        // NOTE: Do NOT fall back to parent product points per requirements
-        // Variations with no custom value will be calculated via Points::get_variation_display_points()
+        // Fall back to parent product points
+        $parent_id = $variation->get_parent_id();
+        if ($parent_id) {
+            return self::get_product_points($parent_id, $price);
+        }
+
         return 0;
     }
 
@@ -109,8 +109,6 @@ class Product_Meta {
     /**
      * Add metabox to product edit page.
      * 
-     * NOTE: Do NOT show for variable products (variations handled separately)
-     * 
      * @return void
      */
     public static function add_product_meta_box() {
@@ -120,28 +118,17 @@ class Product_Meta {
             array(self::class, 'render_product_meta_box'),
             'product',
             'normal',
-            'high',
-            array('exclude_post_types' => array('product_variation'))
+            'high'
         );
     }
 
     /**
      * Render product meta box.
      * 
-     * Only shown for simple products, NOT for variable products.
-     * 
      * @param WP_Post $post Post object
      * @return void
      */
     public static function render_product_meta_box($post) {
-        $product = wc_get_product($post->ID);
-        
-        // Skip for variable products
-        if ($product && $product->is_type('variable')) {
-            echo '<p>' . esc_html__('Reward Points are managed per variation for variable products.', 'sellsuite') . '</p>';
-            return;
-        }
-
         $product_id = $post->ID;
         $points_value = get_post_meta($product_id, '_reward_points_value', true);
         $points_type = get_post_meta($product_id, '_reward_points_type', true) ?: 'fixed';
@@ -151,7 +138,7 @@ class Product_Meta {
         <div class="sellsuite-reward-points-metabox">
             <p>
                 <label for="reward_points_value"><?php esc_html_e('Reward Points Value', 'sellsuite'); ?>:</label>
-                <input type="number" id="reward_points_value" name="reward_points_value" value="<?php echo esc_attr($points_value); ?>" min="0" style="width: 100px;" placeholder="">
+                <input type="number" id="reward_points_value" name="reward_points_value" value="<?php echo esc_attr($points_value); ?>" min="0" style="width: 100px;">
             </p>
 
             <p>
@@ -163,7 +150,7 @@ class Product_Meta {
             </p>
 
             <p class="description">
-                <?php esc_html_e('Fixed: Award a set number of points. Percentage: Award points based on product price. Leave empty to use global "Points Per Dollar" setting.', 'sellsuite'); ?>
+                <?php esc_html_e('Fixed: Award a set number of points. Percentage: Award points based on product price.', 'sellsuite'); ?>
             </p>
         </div>
         <?php
@@ -200,9 +187,6 @@ class Product_Meta {
     /**
      * Add meta fields to product variations.
      * 
-     * NOTE: Input fields are empty by default (no placeholder/default value).
-     * If a variation has no custom value, it will use automatic calculation.
-     * 
      * @param int $loop Loop index
      * @param array $variation_data Variation data
      * @param WP_Post $variation Variation post
@@ -215,7 +199,7 @@ class Product_Meta {
         ?>
         <div class="form-row form-row-full">
             <label><?php esc_html_e('Reward Points', 'sellsuite'); ?>:</label>
-            <input type="number" class="variation_field" name="variation_reward_points[<?php echo esc_attr($loop); ?>]" value="<?php echo esc_attr($points_value); ?>" min="0">
+            <input type="number" class="variation_field" name="variation_reward_points[<?php echo esc_attr($loop); ?>]" value="<?php echo esc_attr($points_value); ?>" min="0" placeholder="0">
             <select class="variation_field" name="variation_reward_points_type[<?php echo esc_attr($loop); ?>]" value="<?php echo esc_attr($points_type); ?>">
                 <option value="fixed" <?php selected($points_type, 'fixed'); ?>><?php esc_html_e('Fixed', 'sellsuite'); ?></option>
                 <option value="percentage" <?php selected($points_type, 'percentage'); ?>><?php esc_html_e('Percentage', 'sellsuite'); ?></option>

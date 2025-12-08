@@ -10,6 +10,10 @@ class Frontend {
      * Enqueue frontend scripts and styles.
      */
     public function enqueue_scripts() {
+        // if (!is_account_page()) {
+        //     return;
+        // }
+
         wp_enqueue_style(
             'sellsuite-frontend-css',
             SELLSUITE_PLUGIN_URL . 'assets/css/frontend.css',
@@ -17,22 +21,14 @@ class Frontend {
             SELLSUITE_VERSION
         );
 
-        // Enqueue script for dynamic variation points update on product pages
-        if (is_product()) {
-            wp_enqueue_script(
-                'sellsuite-variation-points',
-                SELLSUITE_PLUGIN_URL . 'assets/js/variation-points.js',
-                array('jquery'),
-                SELLSUITE_VERSION,
-                true
-            );
+        // wp_enqueue_script(
+        //     'sellsuite-frontend-js',
+        //     SELLSUITE_PLUGIN_URL . 'assets/js/frontend.js',
+        //     array('jquery'),
+        //     SELLSUITE_VERSION,
+        //     true
+        // );
 
-            // Localize script with REST URL and nonce
-            wp_localize_script('sellsuite-variation-points', 'sellsuitePoints', array(
-                'restUrl' => rest_url('sellsuite/v1/products'),
-                'nonce' => wp_create_nonce('wp_rest'),
-            ));
-        }
     }
 
     /**
