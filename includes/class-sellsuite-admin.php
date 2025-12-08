@@ -56,12 +56,14 @@ class Admin {
 
     /**
      * Render the settings page.
+     * 
+     * This page is rendered using React.js for a modern, interactive UI.
+     * The React app is mounted to #sellsuite-settings-root element.
      */
     public function render_settings_page() {
         ?>
         <div class="wrap">
-            <h1><?php echo esc_html__('SellSuite Settings', 'sellsuite'); ?></h1>
-            <div id="sellsuite-settings-app"></div>
+            <div id="sellsuite-settings-root"></div>
         </div>
         <?php
     }
@@ -74,22 +76,26 @@ class Admin {
             return;
         }
 
+        // Enqueue React and ReactDOM from WordPress (if available) or CDN
+        wp_enqueue_script('react');
+        wp_enqueue_script('react-dom');
+
         // Enqueue WordPress components styles
         wp_enqueue_style('wp-components');
 
-        // Enqueue custom admin styles
+        // Enqueue custom admin styles (compiled from SCSS)
         wp_enqueue_style(
             'sellsuite-admin-css',
-            SELLSUITE_PLUGIN_URL . 'assets/css/admin.css',
+            SELLSUITE_PLUGIN_URL . 'admin/assets/css/sellsuite-admin.css',
             array('wp-components'),
             SELLSUITE_VERSION
         );
 
-        // Enqueue React app (will be built by webpack/gulp)
+        // Enqueue React app (will be built by webpack)
         wp_enqueue_script(
             'sellsuite-admin-js',
-            SELLSUITE_PLUGIN_URL . 'admin/build/index.js',
-            array('wp-element', 'wp-components', 'wp-api-fetch', 'wp-i18n'),
+            SELLSUITE_PLUGIN_URL . 'admin/build/app.js',
+            array('react', 'react-dom', 'wp-element', 'wp-components', 'wp-api-fetch', 'wp-i18n'),
             SELLSUITE_VERSION,
             true
         );
@@ -99,6 +105,10 @@ class Admin {
             'apiUrl' => rest_url('sellsuite/v1'),
             'nonce' => wp_create_nonce('wp_rest'),
             'currentPage' => $hook === 'sellsuite_page_sellsuite-settings' ? 'settings' : 'dashboard',
+            'settings' => get_option('sellsuite_settings', array()),
         ));
+
+        // Set translations for React
+        wp_set_script_translations('sellsuite-admin-js', 'sellsuite');
     }
 }
