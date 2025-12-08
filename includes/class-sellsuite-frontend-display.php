@@ -32,6 +32,11 @@ class SellSuite_Frontend_Display {
             return;
         }
 
+        // Hide if reward points system is disabled
+        if (!\SellSuite\Points::is_enabled()) {
+            return;
+        }
+
         $product_id = $product->get_id();
         $points = \SellSuite\Points::get_product_display_points($product_id);
 
@@ -62,6 +67,11 @@ class SellSuite_Frontend_Display {
      */
     public static function add_checkout_points_row() {
         if (!is_checkout() || WC()->cart->is_empty()) {
+            return;
+        }
+
+        // Hide if reward points system is disabled
+        if (!\SellSuite\Points::is_enabled()) {
             return;
         }
 
@@ -103,6 +113,11 @@ class SellSuite_Frontend_Display {
      */
     public static function display_thankyou_points($order_id) {
         if (!$order_id) {
+            return;
+        }
+
+        // Hide if reward points system is disabled
+        if (!\SellSuite\Points::is_enabled()) {
             return;
         }
 
@@ -169,6 +184,11 @@ class SellSuite_Frontend_Display {
      * @param string $cart_item_key Cart item key
      */
     public static function display_cart_item_points($cart_item, $cart_item_key) {
+        // Hide if reward points system is disabled
+        if (!\SellSuite\Points::is_enabled()) {
+            return;
+        }
+
         $product = $cart_item['data'];
         $quantity = $cart_item['quantity'];
 
