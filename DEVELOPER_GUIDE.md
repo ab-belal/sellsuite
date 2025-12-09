@@ -10,7 +10,7 @@
 
 ### Check if System is Enabled
 ```php
-if (Points_Manager::is_enabled()) {
+if (Points_Manager::is_points_enabled()) {
     // System is active
 }
 ```

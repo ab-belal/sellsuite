@@ -46,7 +46,7 @@ class Order_Handler {
             }
 
             // Check if points system is enabled
-            if (!Points::is_enabled()) {
+            if (!Points::is_points_enabled()) {
                 return false;
             }
 
@@ -301,8 +301,8 @@ class Order_Handler {
             return floor(($order_total * $settings['points_percentage']) / 100);
         }
 
-        // Fixed method: points per dollar
-        return floor($order_total * $settings['points_per_dollar']);
+        // Fixed method: points per currency
+        return floor($order_total * $settings['points_per_currency']);
     }
 
     /**
@@ -376,7 +376,7 @@ class Order_Handler {
             );
         }
 
-        if (!Points::is_enabled()) {
+        if (!Points::is_points_enabled()) {
             return array(
                 'valid' => false,
                 'message' => __('Points system is disabled', 'sellsuite'),

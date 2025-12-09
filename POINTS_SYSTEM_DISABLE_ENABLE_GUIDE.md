@@ -83,7 +83,7 @@ Customer Dashboard: Can still see past earned points
 
 ## Implementation Details
 
-### Core Method: `Points::is_enabled()`
+### Core Method: `Points::is_points_enabled()`
 
 **File:** `class-sellsuite-points-manager.php`  
 **Line:** ~95
@@ -94,7 +94,7 @@ Customer Dashboard: Can still see past earned points
  * 
  * @return bool
  */
-public static function is_enabled() {
+public static function is_points_enabled() {
     $settings = self::get_settings();
     return isset($settings['points_enabled']) ? (bool) $settings['points_enabled'] : true;
 }
@@ -119,7 +119,7 @@ public static function is_enabled() {
 
 ```php
 // Hide if reward points system is disabled
-if (!\SellSuite\Points::is_enabled()) {
+if (!\SellSuite\Points::is_points_enabled()) {
     return;
 }
 ```
@@ -134,7 +134,7 @@ if (!\SellSuite\Points::is_enabled()) {
 
 ```php
 // Hide if reward points system is disabled
-if (!\SellSuite\Points::is_enabled()) {
+if (!\SellSuite\Points::is_points_enabled()) {
     return;
 }
 ```
@@ -149,7 +149,7 @@ if (!\SellSuite\Points::is_enabled()) {
 
 ```php
 // Hide if reward points system is disabled
-if (!\SellSuite\Points::is_enabled()) {
+if (!\SellSuite\Points::is_points_enabled()) {
     return;
 }
 ```
@@ -164,7 +164,7 @@ if (!\SellSuite\Points::is_enabled()) {
 
 ```php
 // Hide if reward points system is disabled
-if (!\SellSuite\Points::is_enabled()) {
+if (!\SellSuite\Points::is_points_enabled()) {
     return;
 }
 ```
@@ -182,7 +182,7 @@ if (!\SellSuite\Points::is_enabled()) {
 
 ```php
 // Check if points system is enabled
-if (!Points::is_enabled()) {
+if (!Points::is_points_enabled()) {
     return false;
 }
 ```
@@ -200,7 +200,7 @@ Customer views product
         ↓
 display_product_points()
         ↓
-Points::is_enabled() → TRUE
+Points::is_points_enabled() → TRUE
         ↓
 Calculate points
         ↓
@@ -210,7 +210,7 @@ Customer checks out
         ↓
 add_checkout_points_row()
         ↓
-Points::is_enabled() → TRUE
+Points::is_points_enabled() → TRUE
         ↓
 Show points in review ✓
         ↓
@@ -218,7 +218,7 @@ Order placed
         ↓
 award_points_for_order()
         ↓
-Points::is_enabled() → TRUE
+Points::is_points_enabled() → TRUE
         ↓
 Award points to account ✓
         ↓
@@ -232,7 +232,7 @@ Customer views product
         ↓
 display_product_points()
         ↓
-Points::is_enabled() → FALSE
+Points::is_points_enabled() → FALSE
         ↓
 Return early (no display) ✓
         ↓
@@ -240,7 +240,7 @@ Customer checks out
         ↓
 add_checkout_points_row()
         ↓
-Points::is_enabled() → FALSE
+Points::is_points_enabled() → FALSE
         ↓
 Return early (no display) ✓
         ↓
@@ -248,7 +248,7 @@ Order placed
         ↓
 award_points_for_order()
         ↓
-Points::is_enabled() → FALSE
+Points::is_points_enabled() → FALSE
         ↓
 Return false (no points awarded) ✓
         ↓
@@ -383,7 +383,7 @@ Checked (Enabled)
 ## Code Integration Map
 
 ```
-Points::is_enabled() ← Central Control Point
+Points::is_points_enabled() ← Central Control Point
         │
         ├─ display_product_points()
         │  └─ Product page display
@@ -489,7 +489,7 @@ get_option('sellsuite_settings', array())
 ### Check if System Enabled
 
 ```php
-if (\SellSuite\Points::is_enabled()) {
+if (\SellSuite\Points::is_points_enabled()) {
     // Show points, earn points
 } else {
     // Don't show, don't earn
@@ -518,7 +518,7 @@ update_option('sellsuite_settings', $settings);
 ### Custom Hook: Show Custom Message When Disabled
 
 ```php
-if (!\SellSuite\Points::is_enabled()) {
+if (!\SellSuite\Points::is_points_enabled()) {
     // Show custom message that rewards are paused
     echo 'Rewards temporarily unavailable';
 }
@@ -527,7 +527,7 @@ if (!\SellSuite\Points::is_enabled()) {
 ### Custom Hook: Show Different Message When Enabled
 
 ```php
-if (\SellSuite\Points::is_enabled()) {
+if (\SellSuite\Points::is_points_enabled()) {
     // Show normal reward points message
 } else {
     // Show alternative message
@@ -538,7 +538,7 @@ if (\SellSuite\Points::is_enabled()) {
 
 ```php
 function maybe_show_checkout_message() {
-    if (!\SellSuite\Points::is_enabled()) {
+    if (!\SellSuite\Points::is_points_enabled()) {
         // Don't show anything
         return;
     }
@@ -565,7 +565,7 @@ function maybe_show_checkout_message() {
 
 **Check:**
 1. Verify setting is true
-2. Check if `Points::is_enabled()` returns true
+2. Check if `Points::is_points_enabled()` returns true
 3. Check if points value > 0
 4. Check if product has price
 5. Clear any object cache
@@ -618,7 +618,7 @@ Admin → SellSuite → Settings → Points Enabled → ON → Save
 
 **Check if enabled (code):**
 ```php
-\SellSuite\Points::is_enabled() // returns true or false
+\SellSuite\Points::is_points_enabled() // returns true or false
 ```
 
 ---

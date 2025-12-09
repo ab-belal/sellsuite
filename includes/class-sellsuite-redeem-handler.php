@@ -30,7 +30,7 @@ class Redeem_Handler {
             }
 
             // Validate points system
-            if (!Points::is_enabled()) {
+            if (!Points::is_points_enabled()) {
                 return array(
                     'success' => false,
                     'message' => __('Points system is disabled', 'sellsuite'),

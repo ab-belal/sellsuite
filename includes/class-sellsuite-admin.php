@@ -106,6 +106,11 @@ class Admin {
             'nonce' => wp_create_nonce('wp_rest'),
             'currentPage' => $hook === 'sellsuite_page_sellsuite-settings' ? 'settings' : 'dashboard',
             'settings' => get_option('sellsuite_settings', array()),
+            'currency' => get_woocommerce_currency(),
+            'symbol' => get_woocommerce_currency_symbol(),
+            'decimal_separator' => wc_get_price_decimal_separator(),
+            'thousand_separator' => wc_get_price_thousand_separator(),
+            'decimals' => wc_get_price_decimals(),
         ));
 
         // Set translations for React

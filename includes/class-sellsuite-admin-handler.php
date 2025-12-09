@@ -381,7 +381,7 @@ class Admin_Handler {
             );
         }
 
-        if (!Points::is_enabled()) {
+        if (!Points::is_points_enabled()) {
             return array(
                 'valid' => false,
                 'message' => __('Points system is disabled', 'sellsuite'),
