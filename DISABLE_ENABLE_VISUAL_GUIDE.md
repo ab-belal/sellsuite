@@ -56,7 +56,7 @@ User visits product page
         ▼
 display_product_points()
         │
-        ├─ Check: is_enabled()?
+        ├─ Check: is_points_enabled()?
         │
         ├─ Result: TRUE ✓
         │
@@ -77,7 +77,7 @@ User visits product page
         ▼
 display_product_points()
         │
-        ├─ Check: is_enabled()?
+        ├─ Check: is_points_enabled()?
         │
         ├─ Result: FALSE ✗
         │
@@ -109,7 +109,7 @@ display_product_points()
                        │
                        ▼
         ┌──────────────────────────┐
-        │  ALL USE is_enabled()    │
+        │  ALL USE is_points_enabled()    │
         └──────────┬───────────────┘
                    │
          ┌─────────┴─────────┐
@@ -133,7 +133,7 @@ display_product_points()
     │ award_points_for_order()   │
     └────────────┬───────────────┘
                  │
-                 ├─ Check: is_enabled()?
+                 ├─ Check: is_points_enabled()?
                  │
         ┌────────┴─────────┐
         ▼                  ▼
@@ -165,7 +165,7 @@ display_product_points()
     ▼                         ▼
 DISABLE                   ENABLE
   │                         │
-  ├─ Check: is_enabled()?  ├─ Check: is_enabled()?
+  ├─ Check: is_points_enabled()?  ├─ Check: is_points_enabled()?
   │   Result: FALSE         │   Result: TRUE
   │                         │
   ├─ No changes            ├─ Points active
@@ -223,7 +223,7 @@ DISABLE                   ENABLE
 
 ```
 ┌────────────────────────────────────────────────────┐
-│         Points::is_enabled()                       │
+│         Points::is_points_enabled()                       │
 │    (Central Control Point)                         │
 └─────────────────┬──────────────────────────────────┘
                   │

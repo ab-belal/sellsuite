@@ -4,7 +4,7 @@
 
 ### Before
 ```php
-if (!\SellSuite\Points::is_enabled()) {
+if (!\SellSuite\Points::is_points_enabled()) {
     return;
 }
 ```
@@ -91,7 +91,7 @@ New: { "points_per_currency": 10, ... }
 
 ## Verification Results
 
-✅ **PHP Backend:** All `is_enabled()` → `is_points_enabled()` (7/7)
+✅ **PHP Backend:** All `is_points_enabled()` → `is_points_enabled()` (7/7)
 ✅ **PHP Backend:** All `points_per_dollar` → `points_per_currency` (16/16)
 ✅ **React Frontend:** Currency labels now dynamic
 ✅ **No Remaining:** Hardcoded "Dollar" references
@@ -105,7 +105,7 @@ New: { "points_per_currency": 10, ... }
 ### Public Methods
 ```php
 // OLD - No longer exists
-Points::is_enabled() 
+Points::is_points_enabled() 
 
 // NEW - Use this
 Points::is_points_enabled()
@@ -166,7 +166,7 @@ $settings['points_per_currency']
 ## Support Notes
 
 - **Settings Key Change:** Existing values won't automatically migrate. Consider adding a one-time migration script.
-- **Function Rename:** Any custom code calling `Points::is_enabled()` will break. Update references to `Points::is_points_enabled()`.
+- **Function Rename:** Any custom code calling `Points::is_points_enabled()` will break. Update references to `Points::is_points_enabled()`.
 - **Multi-Currency:** Currency display now respects WooCommerce settings. No additional configuration needed.
 
 ---

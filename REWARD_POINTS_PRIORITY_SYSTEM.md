@@ -471,7 +471,7 @@ echo "Calculated Points: $calculated";
 - `Product_Meta::get_product_points()` - Get custom value only
 - `Product_Meta::get_variation_points()` - Get variation custom value
 - `Points::get_settings()` - Get all global settings
-- `Points::is_enabled()` - Check if points system is enabled
+- `Points::is_points_enabled()` - Check if points system is enabled
 - `Order_Handler::order_on_placed()` - Award order points
 
 ---

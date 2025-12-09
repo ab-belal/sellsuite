@@ -52,7 +52,7 @@ Now, when disabled:
 **Implementation Pattern:**
 ```php
 // Hide if reward points system is disabled
-if (!\SellSuite\Points::is_enabled()) {
+if (!\SellSuite\Points::is_points_enabled()) {
     return;
 }
 ```
@@ -73,11 +73,11 @@ if (!\SellSuite\Points::is_enabled()) {
 ### Central Control Point
 
 **File:** `class-sellsuite-points-manager.php`  
-**Method:** `Points::is_enabled()`  
+**Method:** `Points::is_points_enabled()`  
 **Default:** `true` (enabled)
 
 ```php
-public static function is_enabled() {
+public static function is_points_enabled() {
     $settings = self::get_settings();
     return isset($settings['points_enabled']) ? (bool) $settings['points_enabled'] : true;
 }
@@ -126,7 +126,7 @@ Customer browses product
          ↓
 display_product_points()
          ↓
-is_enabled() → TRUE
+is_points_enabled() → TRUE
          ↓
 Calculate points
          ↓
@@ -136,7 +136,7 @@ Customer adds to cart
          ↓
 display_cart_item_points()
          ↓
-is_enabled() → TRUE
+is_points_enabled() → TRUE
          ↓
 Display cart points ✓
          ↓
@@ -144,7 +144,7 @@ Customer proceeds to checkout
          ↓
 add_checkout_points_row()
          ↓
-is_enabled() → TRUE
+is_points_enabled() → TRUE
          ↓
 Display checkout points ✓
          ↓
@@ -152,7 +152,7 @@ Customer places order
          ↓
 award_points_for_order()
          ↓
-is_enabled() → TRUE
+is_points_enabled() → TRUE
          ↓
 Award points to account ✓
          ↓
@@ -166,7 +166,7 @@ Customer browses product
          ↓
 display_product_points()
          ↓
-is_enabled() → FALSE
+is_points_enabled() → FALSE
          ↓
 EXIT EARLY ✓
 (No calculation, no display)
@@ -175,7 +175,7 @@ Customer adds to cart
          ↓
 display_cart_item_points()
          ↓
-is_enabled() → FALSE
+is_points_enabled() → FALSE
          ↓
 EXIT EARLY ✓
 (No display)
@@ -184,7 +184,7 @@ Customer proceeds to checkout
          ↓
 add_checkout_points_row()
          ↓
-is_enabled() → FALSE
+is_points_enabled() → FALSE
          ↓
 EXIT EARLY ✓
 (No row shown)
@@ -193,7 +193,7 @@ Customer places order
          ↓
 award_points_for_order()
          ↓
-is_enabled() → FALSE
+is_points_enabled() → FALSE
          ↓
 EXIT EARLY ✓
 (No points awarded)
@@ -338,7 +338,7 @@ Existing balance UNCHANGED ✓
 ### All Display Points Connected
 
 ```
-┌─ Points::is_enabled() ◄─ Central Control
+┌─ Points::is_points_enabled() ◄─ Central Control
 │
 ├─→ display_product_points()     (Product page)
 ├─→ add_checkout_points_row()    (Checkout)
@@ -357,7 +357,7 @@ All four display methods + order processing now respect the same toggle.
 
 ```php
 // In your code
-if (\SellSuite\Points::is_enabled()) {
+if (\SellSuite\Points::is_points_enabled()) {
     // Show points, earn points
 } else {
     // Don't show, don't earn
@@ -427,7 +427,7 @@ Toggle checkbox → Save
 
 ```php
 // Check status
-$enabled = \SellSuite\Points::is_enabled();
+$enabled = \SellSuite\Points::is_points_enabled();
 
 // In your plugins/themes
 if (!$enabled) {
@@ -472,7 +472,7 @@ if (!$enabled) {
 ## Summary of Implementation
 
 ### What Changed
-- Added 4 is_enabled() checks to display methods
+- Added 4 is_points_enabled() checks to display methods
 - Order handler already had checks
 
 ### What Stayed Same
@@ -499,7 +499,7 @@ if (!$enabled) {
 
 - [x] All display methods updated
 - [x] Order processing updated
-- [x] is_enabled() method exists
+- [x] is_points_enabled() method exists
 - [x] Default setting is true
 - [x] Setting accessible in admin
 - [x] Documentation complete

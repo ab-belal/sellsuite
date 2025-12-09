@@ -7,7 +7,7 @@ This changelog documents the comprehensive refactoring of the SellSuite plugin t
 
 ## Changes Made
 
-### 1. Function Rename: `is_enabled()` → `is_points_enabled()`
+### 1. Function Rename: `is_points_enabled()` → `is_points_enabled()`
 
 **Objective:** Make the function name more explicit and meaningful.
 
@@ -25,7 +25,7 @@ This changelog documents the comprehensive refactoring of the SellSuite plugin t
   - Line 49: `award_points_for_order()` method
   - Line 379: `validate_order_for_points()` method
 
-**Impact:** All calls to `Points::is_enabled()` now use `Points::is_points_enabled()`. The functionality remains identical.
+**Impact:** All calls to `Points::is_points_enabled()` now use `Points::is_points_enabled()`. The functionality remains identical.
 
 ---
 
@@ -98,9 +98,9 @@ All inline code comments were also updated to reflect the new terminology:
 ✅ All PHP files updated and verified
 ✅ All JavaScript/React files updated and verified  
 ✅ No hardcoded "Dollar" text remaining
-✅ No references to `is_enabled()` remaining (except in comments)
+✅ No references to `is_points_enabled()` remaining (except in comments)
 ✅ No references to `points_per_dollar` remaining
-✅ All `is_enabled()` calls changed to `is_points_enabled()`
+✅ All `is_points_enabled()` calls changed to `is_points_enabled()`
 ✅ All `points_per_dollar` references changed to `points_per_currency`
 
 ---
@@ -108,7 +108,7 @@ All inline code comments were also updated to reflect the new terminology:
 ## Backward Compatibility
 
 **Breaking Changes:**
-- Function name changed from `is_enabled()` to `is_points_enabled()`
+- Function name changed from `is_points_enabled()` to `is_points_enabled()`
 - Settings key changed from `points_per_dollar` to `points_per_currency`
 
 **Recommendations for Migration:**

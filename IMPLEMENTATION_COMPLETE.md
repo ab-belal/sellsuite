@@ -12,7 +12,7 @@ A comprehensive enable/disable feature for the reward points system with the fol
 
 ### ✅ Requirement 1: When Disabled - No Earning
 
-**Implementation:** Added `Points::is_enabled()` check in `award_points_for_order()`
+**Implementation:** Added `Points::is_points_enabled()` check in `award_points_for_order()`
 
 ```
 ❌ NO new points earned from purchases
@@ -28,7 +28,7 @@ A comprehensive enable/disable feature for the reward points system with the fol
 
 ### ✅ Requirement 2: When Disabled - Hide All Displays
 
-**Implementation:** Added `Points::is_enabled()` checks in 4 display methods
+**Implementation:** Added `Points::is_points_enabled()` checks in 4 display methods
 
 | Display Location | Method | Status |
 |-----------------|--------|--------|
@@ -102,7 +102,7 @@ Affects entire system
 
 **Pattern Applied:**
 ```php
-if (!\SellSuite\Points::is_enabled()) {
+if (!\SellSuite\Points::is_points_enabled()) {
     return;
 }
 ```
@@ -128,10 +128,10 @@ if (!\SellSuite\Points::is_enabled()) {
 ### Central Control
 
 **Location:** `class-sellsuite-points-manager.php`  
-**Method:** `Points::is_enabled()`
+**Method:** `Points::is_points_enabled()`
 
 ```php
-public static function is_enabled() {
+public static function is_points_enabled() {
     $settings = self::get_settings();
     return isset($settings['points_enabled']) ? (bool) $settings['points_enabled'] : true;
 }
@@ -211,7 +211,7 @@ User visits page
     ↓
 Display method called
     ↓
-Check: is_enabled()?
+Check: is_points_enabled()?
     ├─→ TRUE: Calculate & display points ✓
     └─→ FALSE: Return early (no display) ✓
 ```
@@ -223,7 +223,7 @@ Customer places order
     ↓
 award_points_for_order() called
     ↓
-Check: is_enabled()?
+Check: is_points_enabled()?
     ├─→ TRUE: Award points to account ✓
     └─→ FALSE: Return false (no points) ✓
     ↓
@@ -373,7 +373,7 @@ Result:   ✓ Expected behavior
 - [x] Code implemented correctly
 - [x] All 4 display methods updated
 - [x] Order handler verified
-- [x] is_enabled() method exists
+- [x] is_points_enabled() method exists
 - [x] Settings integration complete
 - [x] Backward compatible
 - [x] No breaking changes
@@ -403,7 +403,7 @@ Admin → SellSuite → Settings → Point Management → General
 
 ### Method to Check Status
 ```php
-\SellSuite\Points::is_enabled() // true or false
+\SellSuite\Points::is_points_enabled() // true or false
 ```
 
 ### Default

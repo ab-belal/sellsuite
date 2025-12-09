@@ -8,7 +8,12 @@ import React from 'react';
 
 const EarningPoints = ({ settings, handleChange }) => {
     // Get WooCommerce currency
-    const currency = window.wc?.wcSettings?.general?.currency || 'USD';
+    let currency = window.sellsuiteData?.currency || 'USD';
+
+    if ('BDT' === currency) {
+        currency = 'Taka (BDT)';
+    }
+
     
     return (
         <div className="point-management-tab-panel">
