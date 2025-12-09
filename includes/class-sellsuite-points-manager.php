@@ -79,7 +79,7 @@ class Points {
             'enable_expiry' => false,
             'expiry_days' => 365,
             'point_calculation_method' => 'fixed',
-            'points_per_dollar' => 1,
+            'points_per_currency' => 1,
             'points_percentage' => 0,
         );
 
@@ -92,7 +92,7 @@ class Points {
      * 
      * @return bool
      */
-    public static function is_enabled() {
+    public static function is_points_enabled() {
         $settings = self::get_settings();
         return isset($settings['points_enabled']) ? (bool) $settings['points_enabled'] : true;
     }
@@ -306,9 +306,9 @@ class Points {
 
         // Calculate points
         $settings = self::get_settings();
-        $points_per_dollar = isset($settings['points_per_dollar']) ? floatval($settings['points_per_dollar']) : 1;
+        $points_per_currency = isset($settings['points_per_currency']) ? floatval($settings['points_per_currency']) : 1;
         $order_total = $order->get_total();
-        $points = floor($order_total * $points_per_dollar);
+        $points = floor($order_total * $points_per_currency);
 
         // Award points
             return self::add_ledger_entry(
@@ -326,7 +326,7 @@ class Points {
      * 
      * Priority:
      * 1. Custom product reward points (if set)
-     * 2. Fallback: Automatic calculation using price × Points Per Dollar setting
+     * 2. Fallback: Automatic calculation using price × Points Per Currency setting
      * 
      * @param int   $product_id Product ID
      * @param float $price Optional price (uses product price if not provided)
@@ -340,7 +340,7 @@ class Points {
             return $custom_points;
         }
 
-        // Fallback: Calculate based on global "Points Per Dollar" setting
+        // Fallback: Calculate based on global "Points Per Currency" setting
         $product = wc_get_product($product_id);
         if (!$product) {
             return 0;
@@ -357,12 +357,12 @@ class Points {
             return 0;
         }
 
-        // Get Points Per Dollar from settings
+        // Get Points Per Currency from settings
         $settings = self::get_settings();
-        $points_per_dollar = isset($settings['points_per_dollar']) ? floatval($settings['points_per_dollar']) : 1;
+        $points_per_currency = isset($settings['points_per_currency']) ? floatval($settings['points_per_currency']) : 1;
 
-        // Calculate: price × points_per_dollar
-        return intval(floor($price * $points_per_dollar));
+        // Calculate: price × points_per_currency
+        return intval(floor($price * $points_per_currency));
     }
 
     /**
@@ -371,7 +371,7 @@ class Points {
      * Priority:
      * 1. Custom variation reward points (if set)
      * 2. Custom parent product reward points (if set)
-     * 3. Fallback: Automatic calculation using price × Points Per Dollar setting
+     * 3. Fallback: Automatic calculation using price × Points Per Currency setting
      * 
      * @param int   $variation_id Variation ID
      * @param float $price Optional price (uses variation price if not provided)
@@ -385,7 +385,7 @@ class Points {
             return $custom_points;
         }
 
-        // Fallback: Calculate based on global "Points Per Dollar" setting
+        // Fallback: Calculate based on global "Points Per Currency" setting
         $variation = wc_get_product($variation_id);
         if (!$variation) {
             return 0;
@@ -402,11 +402,11 @@ class Points {
             return 0;
         }
 
-        // Get Points Per Dollar from settings
+        // Get Points Per Currency from settings
         $settings = self::get_settings();
-        $points_per_dollar = isset($settings['points_per_dollar']) ? floatval($settings['points_per_dollar']) : 1;
+        $points_per_currency = isset($settings['points_per_currency']) ? floatval($settings['points_per_currency']) : 1;
 
-        // Calculate: price × points_per_dollar
-        return intval(floor($price * $points_per_dollar));
+        // Calculate: price × points_per_currency
+        return intval(floor($price * $points_per_currency));
     }
 }

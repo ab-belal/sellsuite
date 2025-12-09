@@ -33,7 +33,7 @@ class SellSuite_Frontend_Display {
         }
 
         // Hide if reward points system is disabled
-        if (!\SellSuite\Points::is_enabled()) {
+        if (!\SellSuite\Points::is_points_enabled()) {
             return;
         }
 
@@ -71,7 +71,7 @@ class SellSuite_Frontend_Display {
         }
 
         // Hide if reward points system is disabled
-        if (!\SellSuite\Points::is_enabled()) {
+        if (!\SellSuite\Points::is_points_enabled()) {
             return;
         }
 
@@ -117,7 +117,7 @@ class SellSuite_Frontend_Display {
         }
 
         // Hide if reward points system is disabled
-        if (!\SellSuite\Points::is_enabled()) {
+        if (!\SellSuite\Points::is_points_enabled()) {
             return;
         }
 
@@ -185,7 +185,7 @@ class SellSuite_Frontend_Display {
      */
     public static function display_cart_item_points($cart_item, $cart_item_key) {
         // Hide if reward points system is disabled
-        if (!\SellSuite\Points::is_enabled()) {
+        if (!\SellSuite\Points::is_points_enabled()) {
             return;
         }
 

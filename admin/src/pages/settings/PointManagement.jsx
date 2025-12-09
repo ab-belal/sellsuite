@@ -18,7 +18,7 @@ const PointManagement = () => {
         enable_expiry: false,
         expiry_days: 365,
         point_calculation_method: 'fixed',
-        points_per_dollar: 1,
+        points_per_currency: 1,
         points_percentage: 0,
     });
 
@@ -77,6 +77,7 @@ const PointManagement = () => {
         } finally {
             setSaving(false);
         }
+        
     };
 
     return (

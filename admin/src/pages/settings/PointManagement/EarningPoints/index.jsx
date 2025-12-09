@@ -7,6 +7,9 @@
 import React from 'react';
 
 const EarningPoints = ({ settings, handleChange }) => {
+    // Get WooCommerce currency
+    const currency = window.wc?.wcSettings?.general?.currency || 'USD';
+    
     return (
         <div className="point-management-tab-panel">
             <h3>Earning Points</h3>
@@ -19,7 +22,7 @@ const EarningPoints = ({ settings, handleChange }) => {
                         onChange={(e) => handleChange('point_calculation_method', e.target.value)}
                         disabled={!settings.points_enabled}
                     >
-                        <option value="fixed">Fixed Points per Dollar</option>
+                        <option value="fixed">Fixed Points per {currency}</option>
                         <option value="percentage">Percentage of Price</option>
                     </select>
                 </label>
@@ -28,18 +31,18 @@ const EarningPoints = ({ settings, handleChange }) => {
             {settings.point_calculation_method === 'fixed' && (
                 <div className="point-management-field">
                     <label className="point-management-label">
-                        Points per Dollar Spent
+                        Points per {currency} Spent
                         <input
                             type="number"
                             min="0"
                             step="1"
-                            value={settings.points_per_dollar}
-                            onChange={(e) => handleChange('points_per_dollar', parseInt(e.target.value))}
+                            value={settings.points_per_currency}
+                            onChange={(e) => handleChange('points_per_currency', parseInt(e.target.value))}
                             disabled={!settings.points_enabled}
                         />
                     </label>
                     <p className="point-management-field-description">
-                        Number of points earned for every dollar spent
+                        Number of points earned for every {currency} spent
                     </p>
                 </div>
             )}
