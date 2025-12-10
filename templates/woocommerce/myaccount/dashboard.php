@@ -207,6 +207,108 @@ if ( function_exists( 'wc_get_products' ) ) {
 		</div>
 	<?php endif; ?>
 
+	<!-- SellSuite Redemption Stats and History -->
+	<?php if ( class_exists( 'SellSuite\Redeem_Handler' ) ) : ?>
+		<div class="redemption-stats card" style="margin-top: 20px;">
+			<div class="card-head">
+				<h3>Redemption Stats</h3>
+			</div>
+			<div class="card-body">
+			<?php
+			$total_redeemed = \SellSuite\Redeem_Handler::get_total_redeemed( $user_id );
+			$redemptions = \SellSuite\Redeem_Handler::get_user_redemptions( $user_id, 5 );
+			?>
+				<div class="redemption-summary" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+					<div class="stat-box" style="background: #e3f2fd; padding: 15px; border-radius: 6px; border-left: 4px solid #2196F3;">
+						<p style="margin: 0; font-size: 12px; color: #666;">Total Redeemed</p>
+						<p style="margin: 8px 0 0 0; font-size: 24px; font-weight: 700; color: #2196F3;">
+							<?php echo intval( $total_redeemed ); ?>
+						</p>
+					</div>
+					<div class="stat-box" style="background: #f3e5f5; padding: 15px; border-radius: 6px; border-left: 4px solid #9C27B0;">
+						<p style="margin: 0; font-size: 12px; color: #666;">Active Redemptions</p>
+						<p style="margin: 8px 0 0 0; font-size: 24px; font-weight: 700; color: #9C27B0;">
+							<?php
+							$active_count = 0;
+							if ( ! empty( $redemptions ) ) {
+								foreach ( $redemptions as $r ) {
+									if ( in_array( $r->status, array( 'pending', 'completed' ) ) ) {
+										$active_count++;
+									}
+								}
+							}
+							echo intval( $active_count );
+							?>
+						</p>
+					</div>
+				</div>
+
+				<?php if ( ! empty( $redemptions ) ) : ?>
+					<h4 style="margin: 0 0 15px 0; font-size: 14px; font-weight: 600;">Recent Redemptions</h4>
+					<div style="overflow-x: auto;">
+						<table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+							<thead>
+								<tr style="background: #f5f5f5; border-bottom: 2px solid #ddd;">
+									<th style="padding: 10px; text-align: left;">Order</th>
+									<th style="padding: 10px; text-align: center;">Points</th>
+									<th style="padding: 10px; text-align: right;">Discount</th>
+									<th style="padding: 10px; text-align: center;">Status</th>
+									<th style="padding: 10px; text-align: center;">Date</th>
+								</tr>
+							</thead>
+							<tbody>
+							<?php foreach ( $redemptions as $redemption ) : 
+								$order = wc_get_order( $redemption->order_id );
+								$status_colors = array(
+									'pending' => array( 'bg' => '#FFF3CD', 'text' => '#856404' ),
+									'completed' => array( 'bg' => '#D4EDDA', 'text' => '#155724' ),
+									'refunded' => array( 'bg' => '#F8D7DA', 'text' => '#721C24' ),
+									'cancelled' => array( 'bg' => '#E2E3E5', 'text' => '#383D41' ),
+								);
+								$status = $redemption->status ?? 'pending';
+								$colors = $status_colors[ $status ] ?? array( 'bg' => '#E2E3E5', 'text' => '#383D41' );
+								?>
+									<tr style="border-bottom: 1px solid #eee;">
+										<td style="padding: 10px; text-align: left;">
+											<?php if ( $order ) : ?>
+												<a href="<?php echo esc_url( $order->get_view_order_url() ); ?>" style="color: #667eea; text-decoration: none; font-weight: 600;">
+													#<?php echo esc_html( $order->get_order_number() ); ?>
+												</a>
+											<?php else : ?>
+												<span style="color: #999;">#<?php echo intval( $redemption->order_id ); ?></span>
+											<?php endif; ?>
+										</td>
+										<td style="padding: 10px; text-align: center; font-weight: 600; color: #667eea;">
+											<?php echo intval( $redemption->redeemed_points ); ?>
+										</td>
+										<td style="padding: 10px; text-align: right; font-weight: 600;">
+											<?php 
+											$currency = get_woocommerce_currency_symbol();
+											echo wp_kses_post( $currency . number_format( floatval( $redemption->discount_value ), 2 ) );
+											?>
+										</td>
+										<td style="padding: 10px; text-align: center;">
+											<span style="background: <?php echo esc_attr( $colors['bg'] ); ?>; color: <?php echo esc_attr( $colors['text'] ); ?>; padding: 4px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; display: inline-block; text-transform: capitalize;">
+												<?php echo esc_html( $status ); ?>
+											</span>
+										</td>
+										<td style="padding: 10px; text-align: center; font-size: 12px; color: #666;">
+											<?php echo esc_html( date_i18n( 'M j, Y', strtotime( $redemption->created_at ) ) ); ?>
+										</td>
+									</tr>
+								<?php endforeach; ?>
+							</tbody>
+						</table>
+					</div>
+				<?php else : ?>
+					<p class="muted" style="text-align: center; padding: 20px;">
+						<?php esc_html_e( 'No redemptions yet. Earn points and redeem them for discounts!', 'sellsuite' ); ?>
+					</p>
+				<?php endif; ?>
+			</div>
+		</div>
+	<?php endif; ?>
+
 	<div class="quick-actions card">
 		<h4>Quick Actions</h4>
 		<div class="actions-grid">

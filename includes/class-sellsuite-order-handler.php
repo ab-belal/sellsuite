@@ -19,8 +19,13 @@ class Order_Handler {
         add_action('woocommerce_thankyou', array(self::class, 'award_points_for_order'), 10, 1);
         add_action('woocommerce_order_status_changed', array(self::class, 'on_order_status_changed'), 10, 3);
         
+        // Handle redemptions
+        add_action('woocommerce_thankyou', array(self::class, 'handle_redemption_on_order'), 11, 1);
+        add_action('woocommerce_order_status_changed', array(self::class, 'handle_redemption_status_change'), 11, 3);
+        
         // Handle refunds
         add_action('woocommerce_order_refunded', array(self::class, 'handle_order_refund'), 10, 2);
+        add_action('woocommerce_order_refunded', array(self::class, 'handle_redemption_on_refund'), 11, 2);
     }
 
     /**
@@ -213,6 +218,38 @@ class Order_Handler {
     }
 
     /**
+     * Handle redemption status changes based on order status.
+     * 
+     * Wrapper method to handle redemption status transitions when order status changes.
+     * 
+     * @param int    $order_id Order ID
+     * @param string $old_status Old status
+     * @param string $new_status New status
+     * @return void
+     */
+    public static function handle_redemption_status_change($order_id, $old_status, $new_status) {
+        if ($new_status === 'completed') {
+            self::handle_redemption_on_complete($order_id);
+        } elseif ($new_status === 'refunded') {
+            // Note: Refund is handled by handle_redemption_on_refund via woocommerce_order_refunded hook
+            // This is just for status tracking if needed
+        } elseif ($new_status === 'cancelled') {
+            // Mark redemption as cancelled if order is cancelled
+            $redemption_id = get_post_meta($order_id, '_points_redeemed_redemption_id', true);
+            if ($redemption_id) {
+                global $wpdb;
+                $wpdb->update(
+                    $wpdb->prefix . 'sellsuite_point_redemptions',
+                    array('status' => 'cancelled'),
+                    array('id' => $redemption_id),
+                    array('%s'),
+                    array('%d')
+                );
+            }
+        }
+    }
+
+    /**
      * Handle order refunds.
      * 
      * Deduct points when order is refunded.
@@ -388,4 +425,240 @@ class Order_Handler {
             'message' => __('Order is valid for points processing', 'sellsuite'),
         );
     }
+
+    /**
+     * Handle redemption points deduction on order placement.
+     * 
+     * Deducts redeemed points from user's balance when order is placed.
+     * 
+     * @param int $order_id Order ID
+     * @return bool Success
+     */
+    public static function handle_redemption_on_order($order_id) {
+        if (!$order_id) {
+            return false;
+        }
+
+        try {
+            $order = wc_get_order($order_id);
+            if (!$order) {
+                return false;
+            }
+
+            $user_id = $order->get_user_id();
+            if (!$user_id) {
+                return true; // Guest checkout - skip points handling
+            }
+
+            // Check if order has a redemption
+            $redemption_id = get_post_meta($order_id, '_points_redeemed_redemption_id', true);
+            if (!$redemption_id) {
+                return true; // No redemption on this order
+            }
+
+            global $wpdb;
+            $redemption = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT * FROM {$wpdb->prefix}sellsuite_point_redemptions WHERE id = %d",
+                    $redemption_id
+                )
+            );
+
+            if (!$redemption || intval($redemption->user_id) !== $user_id) {
+                return false;
+            }
+
+            // Mark redemption as applied (pending)
+            $wpdb->update(
+                $wpdb->prefix . 'sellsuite_point_redemptions',
+                array('status' => 'pending'),
+                array('id' => $redemption_id),
+                array('%s'),
+                array('%d')
+            );
+
+            do_action('sellsuite_redemption_applied_on_order', $order_id, $user_id, $redemption_id);
+
+            return true;
+
+        } catch (\Exception $e) {
+            error_log('SellSuite Redemption On Order Error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Handle redemption completion when order is completed.
+     * 
+     * Marks redeemed points as earned/completed when order is completed.
+     * 
+     * @param int $order_id Order ID
+     * @return bool Success
+     */
+    public static function handle_redemption_on_complete($order_id) {
+        if (!$order_id) {
+            return false;
+        }
+
+        try {
+            $order = wc_get_order($order_id);
+            if (!$order) {
+                return false;
+            }
+
+            $user_id = $order->get_user_id();
+            if (!$user_id) {
+                return true; // Guest checkout
+            }
+
+            // Get redemption ID from order
+            $redemption_id = get_post_meta($order_id, '_points_redeemed_redemption_id', true);
+            if (!$redemption_id) {
+                return true; // No redemption
+            }
+
+            global $wpdb;
+            $redemption = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT * FROM {$wpdb->prefix}sellsuite_point_redemptions WHERE id = %d",
+                    $redemption_id
+                )
+            );
+
+            if (!$redemption) {
+                return false;
+            }
+
+            // Update redemption status to completed
+            $wpdb->update(
+                $wpdb->prefix . 'sellsuite_point_redemptions',
+                array(
+                    'status' => 'completed',
+                    'completed_at' => current_time('mysql')
+                ),
+                array('id' => $redemption_id),
+                array('%s', '%s'),
+                array('%d')
+            );
+
+            // Update ledger entry status if exists
+            if ($redemption->ledger_id) {
+                $wpdb->update(
+                    $wpdb->prefix . 'sellsuite_points_ledger',
+                    array(
+                        'status' => 'earned',
+                        'description' => sprintf(__('Redeemed points confirmed - Order #%d completed', 'sellsuite'), $order_id),
+                        'notes' => __('Redemption completed - order confirmed', 'sellsuite')
+                    ),
+                    array('id' => $redemption->ledger_id),
+                    array('%s', '%s', '%s'),
+                    array('%d')
+                );
+            }
+
+            do_action('sellsuite_redemption_completed', $order_id, $user_id, $redemption_id);
+
+            return true;
+
+        } catch (\Exception $e) {
+            error_log('SellSuite Redemption Complete Error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Handle redemption refund when order is refunded.
+     * 
+     * Restores redeemed points to user when order is refunded.
+     * 
+     * @param int $order_id Order ID
+     * @param int $refund_id Refund ID
+     * @return bool Success
+     */
+    public static function handle_redemption_on_refund($order_id, $refund_id) {
+        if (!$order_id) {
+            return false;
+        }
+
+        try {
+            $order = wc_get_order($order_id);
+            if (!$order) {
+                return false;
+            }
+
+            $user_id = $order->get_user_id();
+            if (!$user_id) {
+                return true; // Guest checkout
+            }
+
+            // Get redemption ID from order
+            $redemption_id = get_post_meta($order_id, '_points_redeemed_redemption_id', true);
+            if (!$redemption_id) {
+                return true; // No redemption
+            }
+
+            global $wpdb;
+            $redemption = $wpdb->get_row(
+                $wpdb->prepare(
+                    "SELECT * FROM {$wpdb->prefix}sellsuite_point_redemptions WHERE id = %d",
+                    $redemption_id
+                )
+            );
+
+            if (!$redemption) {
+                return false;
+            }
+
+            // Restore the redeemed points
+            $restore_ledger_id = Points::add_ledger_entry(
+                $user_id,
+                $redemption->redeemed_points,
+                'redemption_refund',
+                sprintf(__('Redeemed points restored - Order #%d refunded', 'sellsuite'), $order_id),
+                'earned',
+                $order_id
+            );
+
+            if (!$restore_ledger_id) {
+                return false;
+            }
+
+            // Update redemption status to refunded
+            $wpdb->update(
+                $wpdb->prefix . 'sellsuite_point_redemptions',
+                array(
+                    'status' => 'refunded',
+                    'refunded_at' => current_time('mysql'),
+                    'refund_id' => intval($refund_id)
+                ),
+                array('id' => $redemption_id),
+                array('%s', '%s', '%d'),
+                array('%d')
+            );
+
+            // Update original ledger entry
+            if ($redemption->ledger_id) {
+                $wpdb->update(
+                    $wpdb->prefix . 'sellsuite_points_ledger',
+                    array(
+                        'status' => 'refunded',
+                        'description' => sprintf(__('Redemption refunded - Order #%d refunded', 'sellsuite'), $order_id),
+                        'notes' => __('Order refunded - points restored', 'sellsuite')
+                    ),
+                    array('id' => $redemption->ledger_id),
+                    array('%s', '%s', '%s'),
+                    array('%d')
+                );
+            }
+
+            do_action('sellsuite_redemption_refunded', $order_id, $user_id, $redemption_id, $refund_id);
+
+            return true;
+
+        } catch (\Exception $e) {
+            error_log('SellSuite Redemption Refund Error: ' . $e->getMessage());
+            return false;
+        }
+    }
 }
+

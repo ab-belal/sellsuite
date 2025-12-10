@@ -76,14 +76,17 @@ class Loader {
         $this->add_action('wp_enqueue_scripts', $frontend, 'enqueue_scripts');
         $this->add_action('init', $frontend, 'register_frontend_hooks');
         
-        // Register the custom WooCommerce My Account endpoint
+        // Register the custom WooCommerce My Account endpoints
         $this->add_action('init', $frontend, 'add_products_info_endpoint');
+        $this->add_action('init', $frontend, 'add_redemption_history_endpoint');
         
-        // Add the endpoint to the My Account menu
+        // Add the endpoints to the My Account menu
         $this->add_filter('woocommerce_account_menu_items', $frontend, 'add_products_info_menu_item');
+        $this->add_filter('woocommerce_account_menu_items', $frontend, 'add_redemption_history_menu_item');
         
         // Display content when the endpoint is accessed
         $this->add_action('woocommerce_account_products-info_endpoint', $frontend, 'products_info_endpoint_content');
+        $this->add_action('woocommerce_account_redemption-history_endpoint', $frontend, 'redemption_history_endpoint_content');
         
         // Set the page title for the endpoint
         $this->add_filter('the_title', $frontend, 'products_info_endpoint_title');
@@ -147,6 +150,15 @@ class Loader {
         register_rest_route('sellsuite/v1', '/redemptions', array(
             'methods' => 'GET',
             'callback' => array($this, 'get_user_redemptions'),
+            'permission_callback' => function() {
+                return is_user_logged_in();
+            }
+        ));
+
+        // Cancel redemption endpoint
+        register_rest_route('sellsuite/v1', '/redemptions/(?P<id>\d+)/cancel', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'cancel_redemption'),
             'permission_callback' => function() {
                 return is_user_logged_in();
             }
@@ -416,6 +428,37 @@ class Loader {
         }
 
         $result = Redeem_Handler::redeem_points($user_id, $points, $order_id, $options);
+        return rest_ensure_response($result);
+    }
+
+    /**
+     * Cancel redemption.
+     */
+    public function cancel_redemption($request) {
+        $user_id = get_current_user_id();
+        if (!$user_id) {
+            return new \WP_Error('not_authenticated', 'User not authenticated', array('status' => 401));
+        }
+
+        $redemption_id = intval($request['id']);
+        if (!$redemption_id) {
+            return new \WP_Error('invalid_redemption', 'Invalid redemption ID', array('status' => 400));
+        }
+
+        // Verify user owns this redemption
+        global $wpdb;
+        $redemption = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT user_id FROM {$wpdb->prefix}sellsuite_point_redemptions WHERE id = %d",
+                $redemption_id
+            )
+        );
+
+        if (!$redemption || intval($redemption->user_id) !== $user_id) {
+            return new \WP_Error('forbidden', 'You do not have permission to cancel this redemption', array('status' => 403));
+        }
+
+        $result = Redeem_Handler::cancel_redemption($redemption_id);
         return rest_ensure_response($result);
     }
 

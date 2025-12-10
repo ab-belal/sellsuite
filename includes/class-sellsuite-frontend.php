@@ -16,7 +16,7 @@ class Frontend {
 
         wp_enqueue_style(
             'sellsuite-frontend-css',
-            SELLSUITE_PLUGIN_URL . 'assets/css/frontend.css',
+            SELLSUITE_PLUGIN_URL . 'public/assets/css/frontend.css',
             array(),
             SELLSUITE_VERSION
         );
@@ -49,6 +49,12 @@ class Frontend {
 
         // Inline CSS for points display
         add_action('wp_head', array('SellSuite_Frontend_Display', 'add_inline_css'));
+
+        // Point redemption box on checkout
+        add_action('woocommerce_checkout_after_order_review', array('SellSuite_Frontend_Display', 'display_redemption_box'), 10);
+
+        // Enqueue point redemption scripts on checkout
+        add_action('wp_enqueue_scripts', array('SellSuite_Frontend_Display', 'enqueue_redemption_scripts'));
     }
 
     /**
@@ -64,6 +70,15 @@ class Frontend {
         // First parameter: endpoint slug (URL friendly)
         // Second parameter: endpoint mask (EP_ROOT = available at root level)
         add_rewrite_endpoint('products-info', EP_ROOT | EP_PAGES);
+    }
+
+    /**
+     * Add redemption history endpoint.
+     * 
+     * Hook: init
+     */
+    public function add_redemption_history_endpoint() {
+        add_rewrite_endpoint('redemption-history', EP_ROOT | EP_PAGES);
     }
 
     /**
@@ -98,6 +113,29 @@ class Frontend {
     }
 
     /**
+     * Add redemption history to WooCommerce My Account menu.
+     * 
+     * Hook: woocommerce_account_menu_items
+     * 
+     * @param array $items Existing menu items
+     * @return array Modified menu items
+     */
+    public function add_redemption_history_menu_item($items) {
+        $new_items = array();
+        
+        foreach ($items as $key => $value) {
+            $new_items[$key] = $value;
+            
+            // Insert redemption history after orders
+            if ($key === 'orders') {
+                $new_items['redemption-history'] = __('Redemptions', 'sellsuite');
+            }
+        }
+        
+        return $new_items;
+    }
+
+    /**
      * Display content for the products-info endpoint page.
      * 
      * This method is called when the user navigates to the products-info page
@@ -110,6 +148,34 @@ class Frontend {
         // Load the template file
         // This keeps the display logic separate from the controller logic
         $template_path = SELLSUITE_PLUGIN_DIR . 'templates/woocommerce/myaccount/products-info.php';
+        
+        // Check if template file exists before loading
+        if (file_exists($template_path)) {
+            include $template_path;
+        } else {
+            // Fallback error message if template is missing
+            ?>
+            <div class="woocommerce-notices-wrapper">
+                <div class="woocommerce-error" role="alert">
+                    <?php esc_html_e('Template file not found. Please contact the site administrator.', 'sellsuite'); ?>
+                </div>
+            </div>
+            <?php
+        }
+    }
+
+    /**
+     * Display redemption history endpoint content.
+     * 
+     * This method is called when the user navigates to the redemption-history page
+     * in their My Account area. It loads the template file that displays the
+     * redemption history table.
+     * 
+     * Hook: woocommerce_account_redemption-history_endpoint
+     */
+    public function redemption_history_endpoint_content() {
+        // Load the template file
+        $template_path = SELLSUITE_PLUGIN_DIR . 'templates/woocommerce/myaccount/redemption-history.php';
         
         // Check if template file exists before loading
         if (file_exists($template_path)) {

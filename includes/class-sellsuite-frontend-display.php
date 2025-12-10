@@ -248,15 +248,6 @@ class SellSuite_Frontend_Display {
                 font-weight: 600;
             }
 
-            .sellsuite-points-row td {
-                text-align: right;
-            }
-
-            .sellsuite-points-row .points-amount {
-                color: #ffc107;
-                font-size: 16px;
-            }
-
             .sellsuite-thankyou-points,
             .sellsuite-thankyou-balance {
                 margin: 20px 0;
@@ -333,5 +324,96 @@ class SellSuite_Frontend_Display {
             }
         </style>
         <?php
+    }
+
+    /**
+     * Display point redemption box on checkout
+     *
+     * Hook: woocommerce_review_order_after_shipping
+     */
+    public static function display_redemption_box() {
+        // Only show on checkout page
+        if (!is_checkout()) {
+            return;
+        }
+
+        // Only show for logged-in users
+        $user_id = get_current_user_id();
+        if (!$user_id) {
+            return;
+        }
+
+        // Hide if reward points system is disabled
+        if (!\SellSuite\Points::is_points_enabled()) {
+            return;
+        }
+
+        // Check if user has available points
+        $available_points = \SellSuite\Points::get_available_balance($user_id);
+        if ($available_points <= 0) {
+            return;
+        }
+
+        // Load the template
+        $template_path = SELLSUITE_PLUGIN_DIR . 'templates/woocommerce/checkout/point-redemption.php';
+        if (file_exists($template_path)) {
+            include $template_path;
+        }
+    }
+
+    /**
+     * Enqueue point redemption JavaScript on checkout
+     *
+     * Hook: wp_enqueue_scripts
+     */
+    public static function enqueue_redemption_scripts() {
+        // Only on checkout page
+        if (!is_checkout()) {
+            return;
+        }
+
+        // Only for logged-in users
+        if (!is_user_logged_in()) {
+            return;
+        }
+
+        // Enqueue jQuery (WooCommerce already includes it)
+        wp_enqueue_script('jquery');
+
+        // Enqueue point redemption script
+        wp_enqueue_script(
+            'sellsuite-point-redemption',
+            SELLSUITE_PLUGIN_URL . 'public/assets/js/src/point-redemption.js',
+            array('jquery'),
+            SELLSUITE_VERSION,
+            true
+        );
+
+        // Get data for JavaScript
+        $user_id = get_current_user_id();
+        $available_points = \SellSuite\Points::get_available_balance($user_id);
+        $settings = \SellSuite\Points::get_settings();
+        
+        // Get order total
+        $order_total = 0;
+        if (WC()->cart) {
+            $order_total = floatval(WC()->cart->get_total(false));
+        }
+
+        // Localize data for JavaScript
+        wp_localize_script(
+            'sellsuite-point-redemption',
+            'sellsuiteRedemptionData',
+            array(
+                'conversion_rate' => floatval($settings['conversion_rate'] ?? 1),
+                'max_redeemable_percentage' => floatval($settings['max_redeemable_percentage'] ?? 20),
+                'available_points' => intval($available_points),
+                'order_total' => $order_total,
+                'currency' => get_woocommerce_currency(),
+                'currency_symbol' => get_woocommerce_currency_symbol(),
+                'nonce' => wp_create_nonce('wp_rest'),
+                'ajaxurl' => admin_url('admin-ajax.php'),
+            )
+        );
     }
 }
