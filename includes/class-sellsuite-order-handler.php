@@ -493,12 +493,15 @@ class Order_Handler {
                 return false;
             }
 
-            // Mark redemption as applied (pending)
+            // Update redemption with actual order_id and mark as pending
             $wpdb->update(
                 $wpdb->prefix . 'sellsuite_point_redemptions',
-                array('status' => 'pending'),
+                array(
+                    'order_id' => $order_id,  // Link redemption to the order
+                    'status' => 'pending'     // Mark as pending until order is completed
+                ),
                 array('id' => $redemption_id),
-                array('%s'),
+                array('%d', '%s'),
                 array('%d')
             );
 

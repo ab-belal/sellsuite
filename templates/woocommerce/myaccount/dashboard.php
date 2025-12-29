@@ -81,6 +81,7 @@ if ( function_exists( 'wc_get_products' ) ) {
 			
 			// Adjust available to account for pending redemptions
 			$adjusted_available = max( 0, $points_summary['available'] - $pending_redemption_points );
+			// var_dump($pending_redemption_points);
 			?><!-- Total Earned -->
 				<div class="point-stat-box total-earned-points" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px; border-radius: 6px; text-align: center;">
 					<p style="margin: 0; font-size: 12px; opacity: 0.9;">Total Earned</p>

@@ -372,6 +372,7 @@ class Redeem_Handler {
     /**
      * Get pending redemption points (points from incomplete/pending orders).
      * These are points that have been redeemed but order is not yet completed.
+     * Only counts redemptions linked to actual orders (order_id > 0).
      * 
      * @param int $user_id User ID
      * @return int Total pending redemption points
@@ -380,10 +381,12 @@ class Redeem_Handler {
         global $wpdb;
 
         // Query the point_redemptions table for pending status entries
+        // Only count redemptions with actual order_id (order_id > 0)
+        // This ensures waiting points only show after order is placed, not when user applies redemption
         $result = $wpdb->get_var(
             $wpdb->prepare(
                 "SELECT SUM(redeemed_points) FROM {$wpdb->prefix}sellsuite_point_redemptions 
-                WHERE user_id = %d AND status = 'pending'",
+                WHERE user_id = %d AND order_id > 0 AND status = 'pending'",
                 $user_id
             )
         );
