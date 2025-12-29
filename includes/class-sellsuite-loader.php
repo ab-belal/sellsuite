@@ -164,6 +164,15 @@ class Loader {
             }
         ));
 
+        // Calculate earned points endpoint
+        register_rest_route('sellsuite/v1', '/calculate-earned-points', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'calculate_earned_points'),
+            'permission_callback' => function() {
+                return is_user_logged_in();
+            }
+        ));
+
         // Analytics endpoints
         register_rest_route('sellsuite/v1', '/analytics/timeline', array(
             'methods' => 'GET',
@@ -460,6 +469,36 @@ class Loader {
 
         $result = Redeem_Handler::cancel_redemption($redemption_id);
         return rest_ensure_response($result);
+    }
+
+    /**
+     * Calculate earned points based on order total.
+     * 
+     * This endpoint calculates how many points will be earned
+     * for a given purchase amount.
+     */
+    public function calculate_earned_points($request) {
+        $params = $request->get_json_params();
+        $total = isset($params['total']) ? floatval($params['total']) : 0;
+
+        if ($total <= 0) {
+            return rest_ensure_response(array(
+                'success' => false,
+                'earned_points' => 0,
+                'message' => 'Invalid total amount'
+            ));
+        }
+
+        $settings = Points::get_settings();
+        $points_per_currency = isset($settings['points_per_currency']) ? floatval($settings['points_per_currency']) : 1;
+        $earned_points = intval(floor($total * $points_per_currency));
+
+        return rest_ensure_response(array(
+            'success' => true,
+            'earned_points' => $earned_points,
+            'total' => $total,
+            'conversion_rate' => $points_per_currency
+        ));
     }
 
     /**

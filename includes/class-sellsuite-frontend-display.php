@@ -75,18 +75,10 @@ class SellSuite_Frontend_Display {
             return;
         }
 
-        $total_points = 0;
-
-        // Calculate total points for all items in cart
-        foreach (WC()->cart->get_cart() as $cart_item) {
-            $product = $cart_item['data'];
-            $quantity = $cart_item['quantity'];
-            
-            $product_id = $product->get_id();
-            $points = \SellSuite\Points::get_product_display_points($product_id);
-            
-            $total_points += ($points * $quantity);
-        }
+        // Calculate earned points: Earned Points = Order Total (1:1 ratio)
+        // Use subtotal (without taxes/fees) as the basis
+        $cart_subtotal = WC()->cart->get_subtotal();
+        $total_points = intval(floor($cart_subtotal));
 
         if ($total_points <= 0) {
             return;
@@ -350,7 +342,14 @@ class SellSuite_Frontend_Display {
 
         // Check if user has available points
         $available_points = \SellSuite\Points::get_available_balance($user_id);
-        if ($available_points <= 0) {
+        
+        // Get pending redemption points (points waiting to be permanently deducted)
+        $pending_redemption_points = \SellSuite\Redeem_Handler::get_pending_redemption_points($user_id);
+        
+        // Calculate adjusted available (can only use points not in pending redemption)
+        $adjusted_available = max(0, $available_points - $pending_redemption_points);
+        
+        if ($adjusted_available <= 0) {
             return;
         }
 
@@ -392,6 +391,13 @@ class SellSuite_Frontend_Display {
         // Get data for JavaScript
         $user_id = get_current_user_id();
         $available_points = \SellSuite\Points::get_available_balance($user_id);
+        
+        // Get pending redemption points (points waiting to be permanently deducted)
+        $pending_redemption_points = \SellSuite\Redeem_Handler::get_pending_redemption_points($user_id);
+        
+        // Calculate adjusted available (can only use points not in pending redemption)
+        $adjusted_available = max(0, $available_points - $pending_redemption_points);
+        
         $settings = \SellSuite\Points::get_settings();
         
         // Get order total
@@ -407,10 +413,13 @@ class SellSuite_Frontend_Display {
             array(
                 'conversion_rate' => floatval($settings['conversion_rate'] ?? 1),
                 'max_redeemable_percentage' => floatval($settings['max_redeemable_percentage'] ?? 20),
-                'available_points' => intval($available_points),
+                'available_points' => intval($adjusted_available), // Use adjusted available instead of total
+                'total_available_points' => intval($available_points), // Keep total for reference
+                'pending_redemption_points' => intval($pending_redemption_points), // Show pending separately
                 'order_total' => $order_total,
                 'currency' => get_woocommerce_currency(),
                 'currency_symbol' => get_woocommerce_currency_symbol(),
+                'currency_position' => get_option( 'woocommerce_currency_pos' ),
                 'nonce' => wp_create_nonce('wp_rest'),
                 'ajaxurl' => admin_url('admin-ajax.php'),
             )

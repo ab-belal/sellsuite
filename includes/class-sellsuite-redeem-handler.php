@@ -50,26 +50,45 @@ class Redeem_Handler {
 
             // Get user's available balance
             $available_balance = Points::get_available_balance($user_id);
-            if ($available_balance < $points) {
+            
+            // Get pending redemption points and calculate adjusted available
+            $pending_redemption_points = self::get_pending_redemption_points($user_id);
+            $adjusted_available = max(0, $available_balance - $pending_redemption_points);
+            
+            // Check against adjusted available (not total available)
+            if ($adjusted_available < $points) {
                 return array(
                     'success' => false,
                     'message' => sprintf(
-                        __('Insufficient points. Available: %d, Requested: %d', 'sellsuite'),
+                        __('Insufficient available points. You have %d points available to redeem (Total: %d, Waiting to Redeem: %d)', 'sellsuite'),
+                        $adjusted_available,
                         $available_balance,
-                        $points
+                        $pending_redemption_points
                     ),
                     'code' => 'insufficient_balance',
-                    'available_balance' => $available_balance,
+                    'available_balance' => $adjusted_available,
+                    'total_available' => $available_balance,
+                    'pending_redemption' => $pending_redemption_points,
                 );
             }
 
             // Get settings for conversion
             $settings = Points::get_settings();
-            $conversion_rate = isset($options['conversion_rate']) ? floatval($options['conversion_rate']) : $settings['conversion_rate'];
+            $points_per_currency_unit = isset($options['conversion_rate']) ? floatval($options['conversion_rate']) : $settings['conversion_rate'];
             $currency = isset($options['currency']) ? sanitize_text_field($options['currency']) : 'USD';
 
-            // Calculate discount value
-            $discount_value = $points * $conversion_rate;
+            // Validate conversion rate
+            if ($points_per_currency_unit <= 0) {
+                return array(
+                    'success' => false,
+                    'message' => __('Invalid conversion rate configuration', 'sellsuite'),
+                    'code' => 'invalid_conversion_rate',
+                );
+            }
+
+            // Calculate discount value: discount = redeemed_points / points_per_currency_unit
+            $discount_value = $points / $points_per_currency_unit;
+            $discount_value = round($discount_value, wc_get_price_decimals());
 
             // Validate maximum redeemable percentage for order
             if ($order_id > 0) {
@@ -94,12 +113,13 @@ class Redeem_Handler {
                     'ledger_id' => 0,  // Will be updated by deduction
                     'redeemed_points' => $points,
                     'discount_value' => $discount_value,
-                    'conversion_rate' => $conversion_rate,
+                    'conversion_rate' => $points_per_currency_unit,
                     'currency' => $currency,
+                    'status' => 'pending',  // Mark as pending until order is completed
                     'created_at' => current_time('mysql'),
                 ),
                 array(
-                    '%d', '%d', '%d', '%d', '%f', '%f', '%s', '%s'
+                    '%d', '%d', '%d', '%d', '%f', '%f', '%s', '%s', '%s'
                 )
             );
 
@@ -146,6 +166,10 @@ class Redeem_Handler {
                 array('%d'),
                 array('%d')
             );
+
+            // DO NOT store in user meta - redemption is only applied when explicitly submitted
+            // via form POST data during current checkout session
+            // This prevents auto-apply on page reload from previous sessions
 
             // If order ID provided, add order meta
             if ($order_id > 0) {
@@ -233,6 +257,9 @@ class Redeem_Handler {
             // Mark as canceled
             if ($redemption->order_id > 0) {
                 add_post_meta($redemption->order_id, '_redemption_canceled_' . $redemption_id, true);
+            } else {
+                // Clear pending redemption from user meta if not applied to an order yet
+                delete_user_meta($redemption->user_id, '_pending_point_redemption_id');
             }
 
             do_action('sellsuite_redemption_canceled', $redemption_id, $redemption->user_id, $redemption->redeemed_points);
@@ -340,5 +367,27 @@ class Redeem_Handler {
         );
 
         return floatval($result ?: 0);
+    }
+
+    /**
+     * Get pending redemption points (points from incomplete/pending orders).
+     * These are points that have been redeemed but order is not yet completed.
+     * 
+     * @param int $user_id User ID
+     * @return int Total pending redemption points
+     */
+    public static function get_pending_redemption_points($user_id) {
+        global $wpdb;
+
+        // Query the point_redemptions table for pending status entries
+        $result = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT SUM(redeemed_points) FROM {$wpdb->prefix}sellsuite_point_redemptions 
+                WHERE user_id = %d AND status = 'pending'",
+                $user_id
+            )
+        );
+
+        return intval($result ?: 0);
     }
 }

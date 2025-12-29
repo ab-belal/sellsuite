@@ -62,22 +62,47 @@ class Order_Handler {
 
             $total_points = 0;
             $product_ids = array();
+            $settings = Points::get_settings();
+            
+            // Check if points should be based on order total or product items
+            // If products have custom points set, use per-item calculation
+            // Otherwise, use the order's final total (which includes point redemption discounts)
+            $has_custom_product_points = false;
 
-            // Calculate points for each line item
+            // Calculate points for each line item (check for custom points)
             foreach ($order->get_items() as $item) {
                 $product_id = $item->get_product_id();
-                $quantity = $item->get_quantity();
-                $line_total = $item->get_total();
+                $custom_points = Product_Meta::get_product_points($product_id);
+                if ($custom_points > 0) {
+                    $has_custom_product_points = true;
+                    break;
+                }
+            }
 
-                // Get product points with priority: custom value > calculated from global setting
-                $product_points = Points::get_product_display_points($product_id, $line_total / $quantity);
-                $item_points = $product_points * $quantity;
+            if ($has_custom_product_points) {
+                // Use per-item calculation if any product has custom points
+                foreach ($order->get_items() as $item) {
+                    $product_id = $item->get_product_id();
+                    $quantity = $item->get_quantity();
+                    $line_total = $item->get_total();
 
-                $total_points += $item_points;
-                $product_ids[] = $product_id;
+                    // Get product points with priority: custom value > calculated from global setting
+                    $product_points = Points::get_product_display_points($product_id, $line_total / $quantity);
+                    $item_points = $product_points * $quantity;
 
-                // Log individual product point awarding
-                do_action('sellsuite_product_points_awarded', $product_id, $quantity, $item_points, $order_id);
+                    $total_points += $item_points;
+                    $product_ids[] = $product_id;
+                    // Log individual product point awarding
+                    do_action('sellsuite_product_points_awarded', $product_id, $quantity, $item_points, $order_id);
+                }
+            } else {
+                // Earned Points = Order Total (1:1 ratio)
+                // Use the final order total which includes point redemption discounts
+                $order_total = floatval($order->get_total());
+                $total_points = intval(floor($order_total));
+
+                // Log order-based point awarding
+                do_action('sellsuite_order_points_awarded', $order_total, $total_points, $order_id);
             }
 
             // Apply global order point settings if no product-specific points
@@ -476,6 +501,9 @@ class Order_Handler {
                 array('%s'),
                 array('%d')
             );
+
+            // Clear pending redemption from user meta since it's now applied to the order
+            delete_user_meta($user_id, '_pending_point_redemption_id');
 
             do_action('sellsuite_redemption_applied_on_order', $order_id, $user_id, $redemption_id);
 

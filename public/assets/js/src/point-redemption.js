@@ -11,7 +11,7 @@
 
     const PointRedemption = {
         // Configuration
-        conversionRate: 0,
+        pointsPerCurrencyUnit: 0,
         maxRedeemablePercentage: 0,
         currency: '$',
         currencySymbol: '$',
@@ -31,10 +31,11 @@
             }
 
             // Get data from localized script
-            this.conversionRate = parseFloat(window.sellsuiteRedemptionData.conversion_rate) || 1;
+            this.pointsPerCurrencyUnit = parseFloat(window.sellsuiteRedemptionData.conversion_rate) || 1;
             this.maxRedeemablePercentage = parseFloat(window.sellsuiteRedemptionData.max_redeemable_percentage) || 20;
             this.currency = window.sellsuiteRedemptionData.currency || 'USD';
             this.currencySymbol = window.sellsuiteRedemptionData.currency_symbol || '$';
+            this.currencyPosition = window.sellsuiteRedemptionData.currency_position || 'right';
             this.availablePoints = parseInt(window.sellsuiteRedemptionData.available_points) || 0;
             this.orderTotal = parseFloat(window.sellsuiteRedemptionData.order_total) || 0;
             
@@ -103,11 +104,29 @@
         },
 
         /**
+         * Format currency amount based on position
+         */
+        formatCurrency: function(amount) {
+            const formatted = amount.toFixed(2);
+            if (this.currencyPosition === 'left') {
+                return `${this.currencySymbol}${formatted}`;
+            } else if (this.currencyPosition === 'left_space') {
+                return `${this.currencySymbol} ${formatted}`;
+            } else if (this.currencyPosition === 'right_space') {
+                return `${formatted} ${this.currencySymbol}`;
+            } else {
+                // 'right' or default
+                return `${formatted}${this.currencySymbol}`;
+            }
+        },
+
+        /**
          * Update real-time calculation display
          */
         updateCalculation: function(points) {
-            const discountValue = points * this.conversionRate;
+            const discountValue = points / this.pointsPerCurrencyUnit;
             const remainingPoints = this.availablePoints - points;
+            const newTotal = Math.max(0, this.orderTotal - discountValue);
             const $displayArea = $('#sellsuite-redemption-calculation');
 
             if (!$displayArea.length) {
@@ -117,10 +136,10 @@
             // Check against max redeemable
             let warning = '';
             if (discountValue > this.maxRedeemable) {
-                const maxPoints = Math.floor(this.maxRedeemable / this.conversionRate);
+                const maxPoints = Math.floor(this.maxRedeemable * this.pointsPerCurrencyUnit);
                 warning = `<div class="sellsuite-redemption-warning">
                     <span class="dashicons dashicons-warning"></span>
-                    Maximum redeemable is ${this.currencySymbol}${this.maxRedeemable.toFixed(2)} (${maxPoints} points) for this order.
+                    Maximum redeemable is ${this.formatCurrency(this.maxRedeemable)} (${maxPoints} points) for this order.
                 </div>`;
             }
 
@@ -129,7 +148,16 @@
             if (points > 0) {
                 html = `
                     <div class="sellsuite-calculation-row">
-                        <span class="label">${points} points × ${this.conversionRate} = <strong>${this.currencySymbol}${discountValue.toFixed(2)} discount</strong></span>
+                        <span class="label">${points} points ÷ ${this.pointsPerCurrencyUnit} = <strong>${this.formatCurrency(discountValue)} discount</strong></span>
+                    </div>
+                    <div class="sellsuite-calculation-row">
+                        <span class="label">Subtotal: <strong>${this.formatCurrency(this.orderTotal)}</strong></span>
+                    </div>
+                    <div class="sellsuite-calculation-row">
+                        <span class="label">Discount: <strong>-${this.formatCurrency(discountValue)}</strong></span>
+                    </div>
+                    <div class="sellsuite-calculation-row" style="border-top: 1px solid #ddd; padding-top: 10px; margin-top: 10px;">
+                        <span class="label">New Total: <strong style="color: #28a745; font-size: 16px;">${this.formatCurrency(newTotal)}</strong></span>
                     </div>
                     <div class="sellsuite-calculation-row">
                         <span class="label">Available after: <strong>${remainingPoints} points</strong></span>
@@ -160,9 +188,9 @@
                 return;
             }
 
-            const discountValue = points * this.conversionRate;
+            const discountValue = points / this.pointsPerCurrencyUnit;
             if (discountValue > this.maxRedeemable) {
-                this.showError(`Maximum redeemable is ${this.currencySymbol}${this.maxRedeemable.toFixed(2)} for this order`);
+                this.showError(`Maximum redeemable is ${this.formatCurrency(this.maxRedeemable)} for this order`);
                 return;
             }
 
@@ -188,7 +216,7 @@
                     points: points,
                     order_id: orderId,
                     options: {
-                        conversion_rate: this.conversionRate,
+                        conversion_rate: this.pointsPerCurrencyUnit,
                         currency: this.currency
                     }
                 }),
@@ -214,6 +242,7 @@
          * Handle successful redemption
          */
         onRedemptionSuccess: function(response) {
+            
             this.redemptionApplied = true;
             this.redemptionId = response.redemption_id;
 
@@ -230,23 +259,65 @@
             this.availablePoints = response.remaining_balance;
             $('#sellsuite-available-points').text(this.availablePoints);
 
-            // Trigger checkout update
-            $('body').trigger('updated_checkout');
+            // Get nonce for AJAX
+            const nonce = $('input[name="woocommerce-process-checkout-nonce"]').val();
+            const ajaxurl = window.sellsuiteRedemptionData.ajaxurl;
+            
+            console.log('SellSuite: Preparing checkout update AJAX', {
+                'ajaxurl': ajaxurl,
+                'nonce': nonce,
+                'nonce_field_found': nonce ? true : false,
+                'redemptionId': this.redemptionId
+            });
+
+            // Trigger WooCommerce checkout refresh to recalculate fees and totals
+            // This ensures the discount is applied to cart fees and order total is updated
+            $.ajax({
+                url: ajaxurl,
+                type: 'POST',
+                data: {
+                    action: 'woocommerce_update_order_review',
+                    post_data: $('form.checkout').serialize(),
+                    security: nonce
+                },
+                success: function(response) {
+                    console.log('SellSuite: Checkout updated after redemption, recalculating points');
+                    console.log('AJAX Response:', response);
+                    
+                    // Wait a moment for DOM to update, then recalculate points
+                    setTimeout(function() {
+                        PointRedemption.onCheckoutUpdate();
+                    }, 100); // 100ms delay to ensure DOM is fully updated
+                },
+                error: function(xhr, status, error) {
+                    console.error('SellSuite: AJAX Error updating checkout', {
+                        'status': status,
+                        'error': error,
+                        'responseText': xhr.responseText,
+                        'statusCode': xhr.status,
+                        'url': ajaxurl
+                    });
+                    // Still try to update points even if AJAX fails
+                    setTimeout(function() {
+                        PointRedemption.onCheckoutUpdate();
+                    }, 100);
+                }
+            });
         },
 
         /**
          * Add redemption row to order review table
          */
         addRedemptionToOrderReview: function(response) {
-            const discountValue = response.discount_value || (response.points_redeemed * this.conversionRate);
+            const discountValue = response.discount_value || (response.points_redeemed / this.pointsPerCurrencyUnit);
             
             // Try multiple selectors to find the order review table
-            let $table = $('table.woocommerce-review-order-table tbody');
+            let $table = $('table.woocommerce-review-order-table');
             if (!$table.length) {
-                $table = $('.woocommerce-checkout-review-order table tbody');
+                $table = $('.woocommerce-checkout-review-order table');
             }
             if (!$table.length) {
-                $table = $('table.shop_table tbody');
+                $table = $('table.shop_table');
             }
 
             if (!$table.length) {
@@ -260,14 +331,12 @@
             // Create redemption row with proper WooCommerce structure
             const html = `
                 <tr class="sellsuite-redemption-row">
-                    <td class="product-name">
-                        <strong>Point Redemption</strong><br/>
+                    <td class="redemption-label">
+                        <strong>Points Used</strong><br/>
                         <small style="color: #999;">${response.points_redeemed} points</small>
                     </td>
-                    <td class="product-total" style="text-align: right;">
-                        <span class="woocommerce-Price-amount amount">
-                            <span class="woocommerce-price-currency-symbol">${this.currencySymbol}</span>${Math.abs(discountValue).toFixed(2)}
-                        </span>
+                    <td class="discount-amount">
+                        ${this.formatCurrencyForTable(-discountValue)}
                         <button type="button" class="sellsuite-cancel-redemption-btn" title="Cancel redemption" style="margin-left: 10px; background: none; border: none; color: #dc3545; cursor: pointer; padding: 0; font-size: 16px;">
                             <span class="dashicons dashicons-no" style="width: auto; height: auto; font-size: 16px;"></span>
                         </button>
@@ -275,16 +344,59 @@
                 </tr>
             `;
 
-            // Insert before total row
-            const $totalRow = $table.find('tr.order-total, tr.cart-total');
+            // Insert AFTER total row
+            const $totalRow = $table.find('tr.order-total, tr.cart-total, tr.order-subtotal');
             if ($totalRow.length) {
                 $totalRow.before(html);
             } else {
-                // Insert before last row if no total row found
                 $table.append(html);
             }
 
+            // Update the total with the discount applied
+            this.updateOrderTotal(discountValue);
+
             console.log('SellSuite: Redemption row added successfully');
+        },
+
+        /**
+         * Format currency for table display
+         */
+        formatCurrencyForTable: function(amount) {
+            const formatted = Math.abs(amount).toFixed(2);
+            const prefix = amount < 0 ? '-' : '';
+            
+            if (this.currencyPosition === 'left') {
+                return `<span class="woocommerce-Price-amount amount">${prefix}${this.currencySymbol}${formatted}</span>`;
+            } else if (this.currencyPosition === 'left_space') {
+                return `<span class="woocommerce-Price-amount amount">${prefix}${this.currencySymbol} ${formatted}</span>`;
+            } else if (this.currencyPosition === 'right_space') {
+                return `<span class="woocommerce-Price-amount amount">${prefix}${formatted} ${this.currencySymbol}</span>`;
+            } else {
+                // 'right' or default
+                return `<span class="woocommerce-Price-amount amount">${prefix}${formatted}${this.currencySymbol}</span>`;
+            }
+        },
+
+        /**
+         * Update order total in checkout
+         */
+        updateOrderTotal: function(discountValue) {
+            // Find all total amount displays
+            const $totals = $('tr.order-total .woocommerce-Price-amount, tr.cart-total .woocommerce-Price-amount');
+            
+            if ($totals.length > 0) {
+                $totals.each((index, element) => {
+                    const $el = $(element);
+                    const text = $el.text();
+                    
+                    // Extract numeric value from current total
+                    const currentTotal = parseFloat(text.replace(/[^\d.-]/g, '')) || 0;
+                    const newTotal = currentTotal - discountValue;
+                    
+                    // Update display with new total
+                    $el.html(this.formatCurrencyForTable(newTotal).replace(/<[^>]*>/g, ''));
+                });
+            }
         },
 
         /**
@@ -341,27 +453,134 @@
             $('tr.sellsuite-redemption-row').remove();
 
             // Update available points
-            this.availablePoints = response.remaining_balance;
+            this.availablePoints = response.remaining_balance || this.availablePoints;
             $('#sellsuite-available-points').text(this.availablePoints);
 
             // Reset calculation display
             this.updateCalculation(0);
 
-            // Trigger checkout update
-            $('body').trigger('updated_checkout');
+            // Trigger WooCommerce checkout refresh to recalculate fees and totals
+            // This ensures the discount fee is removed and order total is restored
+            $.ajax({
+                url: window.sellsuiteRedemptionData.ajaxurl,
+                type: 'POST',
+                data: {
+                    action: 'woocommerce_update_order_review',
+                    post_data: $('form.checkout').serialize(),
+                    security: $('input[name="woocommerce-process-checkout-nonce"]').val()
+                },
+                success: function(response) {
+                    console.log('SellSuite: Checkout updated after cancellation, recalculating points');
+                    console.log('AJAX Response:', response);
+                    
+                    // Wait a moment for DOM to update, then recalculate points
+                    setTimeout(function() {
+                        PointRedemption.onCheckoutUpdate();
+                    }, 100); // 100ms delay to ensure DOM is fully updated
+                },
+                error: function(xhr, status, error) {
+                    console.error('SellSuite: AJAX Error updating checkout after cancellation', {
+                        'status': status,
+                        'error': error,
+                        'responseText': xhr.responseText,
+                        'statusCode': xhr.status
+                    });
+                    // Still try to update points even if AJAX fails
+                    setTimeout(function() {
+                        PointRedemption.onCheckoutUpdate();
+                    }, 100);
+                }
+            });
         },
 
         /**
          * Handle checkout updates (e.g., shipping method change)
          */
         onCheckoutUpdate: function() {
-            // Re-fetch order total from page
-            const $totalAmount = $('tr.order-total .woocommerce-Price-amount');
-            if ($totalAmount.length) {
-                const totalText = $totalAmount.text().replace(/[^\d.-]/g, '');
-                this.orderTotal = parseFloat(totalText) || 0;
-                this.maxRedeemable = (this.orderTotal * this.maxRedeemablePercentage) / 100;
+            // Get the updated order total from WooCommerce checkout form data
+            // Try multiple selectors to ensure we get the current total
+            
+            let newTotal = 0;
+            
+            // Method 1: Direct query on the order-total row for any price amount
+            const $orderTotalElements = $('tr.order-total .woocommerce-Price-amount');
+            if ($orderTotalElements.length) {
+                // Get the last one (in case there are multiple)
+                const $lastTotal = $orderTotalElements.last();
+                const totalText = $lastTotal.text().trim();
+                // Extract numeric value, handling various currency formats
+                const numericValue = totalText.replace(/[^\d.,]/g, '').replace(/,/g, '');
+                newTotal = parseFloat(numericValue) || 0;
+                console.log('SellSuite: Found total from order-total row:', totalText, '→', newTotal);
             }
+            
+            // Method 2: Look for all price amounts and find the one that changed
+            if (!newTotal || newTotal <= 0) {
+                const allPrices = $('bdi, .woocommerce-Price-amount').map(function() {
+                    const text = $(this).text().trim();
+                    const numeric = text.replace(/[^\d.,]/g, '').replace(/,/g, '');
+                    return parseFloat(numeric) || 0;
+                }).get().filter(p => p > 0);
+                
+                if (allPrices.length > 0) {
+                    // Get the highest value (should be the order total)
+                    newTotal = Math.max(...allPrices);
+                    console.log('SellSuite: Found total from all prices:', newTotal);
+                }
+            }
+            
+            // Method 3: Last resort - look for any visible price on the page
+            if (!newTotal || newTotal <= 0) {
+                const $anyPrice = $('[class*="total"] .woocommerce-Price-amount, [class*="Total"] .woocommerce-Price-amount');
+                if ($anyPrice.length > 0) {
+                    const totalText = $anyPrice.last().text().trim();
+                    const numericValue = totalText.replace(/[^\d.,]/g, '').replace(/,/g, '');
+                    newTotal = parseFloat(numericValue) || 0;
+                    console.log('SellSuite: Found total from total class:', totalText, '→', newTotal);
+                }
+            }
+            
+            // Update if we found a new total
+            if (newTotal > 0) {
+                console.log('SellSuite: Previous total:', this.orderTotal, '→ New total:', newTotal);
+                this.orderTotal = newTotal;
+                this.maxRedeemable = (this.orderTotal * this.maxRedeemablePercentage) / 100;
+            } else {
+                console.warn('SellSuite: Could not find updated order total on page');
+            }
+
+            // Recalculate and update earned points display
+            this.updateEarnedPointsDisplay();
+        },
+
+        /**
+         * Update the earned points display based on current order total
+         * Earned points = Order Total (1:1 ratio, no conversion rate multiplier)
+         */
+        updateEarnedPointsDisplay: function() {
+            // Get the earned points element
+            const $pointsRow = $('tr.sellsuite-points-row .points-amount');
+            
+            if (!$pointsRow.length) {
+                console.warn('SellSuite: Points row (.sellsuite-points-row .points-amount) not found on page');
+                console.log('Available rows:', $('tr').map(function() { return $(this).attr('class'); }).get());
+                return; // No points row to update
+            }
+
+            // Earned points = Order Total (simple 1:1 calculation)
+            const earnedPoints = Math.floor(this.orderTotal);
+            const currentDisplay = $pointsRow.text().trim();
+            
+            // Update the display with the calculated points
+            $pointsRow.html('<i class="fas fa-star"></i> ' + earnedPoints);
+            
+            console.log('SellSuite: Earned Points Updated:', {
+                'previousValue': currentDisplay,
+                'orderTotal': this.orderTotal,
+                'earnedPoints': earnedPoints,
+                'elementFound': true,
+                'newDisplay': '<i class="fas fa-star"></i> ' + earnedPoints
+            });
         },
 
         /**
@@ -423,8 +642,11 @@
             // Update available points display
             $('#sellsuite-available-points').text(this.availablePoints);
             
-            // Update max redeemable display
-            $('#sellsuite-max-redeemable').text(this.currencySymbol + this.maxRedeemable.toFixed(2));
+            // Update max redeemable display with proper currency formatting
+            $('#sellsuite-max-redeemable').text(this.formatCurrency(this.maxRedeemable));
+            
+            // Update earned points display on initialization
+            this.updateEarnedPointsDisplay();
         }
     };
 

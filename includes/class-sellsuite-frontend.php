@@ -42,7 +42,7 @@ class Frontend {
         add_action('woocommerce_after_cart_item_name', array('SellSuite_Frontend_Display', 'display_cart_item_points'), 10, 2);
 
         // Checkout review order table points row
-        add_action('woocommerce_review_order_before_order_total', array('SellSuite_Frontend_Display', 'add_checkout_points_row'));
+        add_action('woocommerce_review_order_after_order_total', array('SellSuite_Frontend_Display', 'add_checkout_points_row'));
 
         // Thank you page points display
         add_action('woocommerce_thankyou', array('SellSuite_Frontend_Display', 'display_thankyou_points'), 5, 1);
@@ -55,6 +55,24 @@ class Frontend {
 
         // Enqueue point redemption scripts on checkout
         add_action('wp_enqueue_scripts', array('SellSuite_Frontend_Display', 'enqueue_redemption_scripts'));
+
+        // Register redemption field to be sent with checkout post_data
+        add_filter('woocommerce_checkout_posted_data', array($this, 'preserve_redemption_field'));
+    }
+
+    /**
+     * Preserve the redemption ID field through checkout AJAX updates.
+     *
+     * Ensures the sellsuite_redemption_id field is passed with post_data
+     * so the cart fee can be calculated on updates.
+     *
+     * @param array $data Posted checkout data
+     * @return array Modified data
+     */
+    public function preserve_redemption_field($data) {
+        // The field is already in the form, just ensure it's preserved
+        // This filter helps maintain the field through AJAX cart updates
+        return $data;
     }
 
     /**

@@ -29,6 +29,9 @@ class WooCommerce_Integration {
         // Refund handling
         Refund_Handler::init();
 
+        // Apply point redemption discount to cart as a fee
+        add_action('woocommerce_cart_calculate_fees', array($this, 'apply_redemption_discount_fee'));
+
         // PHASE 7: Point expiry scheduled processing
         add_action('sellsuite_process_point_expirations', array($this, 'process_all_expirations'));
 
@@ -48,6 +51,82 @@ class WooCommerce_Integration {
         }
 
         return $template;
+    }
+
+    /**
+     * Apply redeemed points discount to the WooCommerce cart as a negative fee.
+     *
+     * This hooks into woocommerce_cart_calculate_fees to apply the discount
+     * that was created when the user redeemed points at checkout.
+     *
+     * @return void
+     */
+    public function apply_redemption_discount_fee() {
+        // Only apply on checkout or cart pages
+        if (is_admin()) {
+            return;
+        }
+
+        if (!is_checkout() && !is_cart()) {
+            return;
+        }
+
+        // Get current user ID
+        $user_id = get_current_user_id();
+        if (!$user_id) {
+            return; // Guest checkout - no redemption
+        }
+
+        // Try to get redemption ID from POST data ONLY (not from user meta)
+        // This ensures discount is only applied when user explicitly applies it during current checkout
+        $redemption_id = 0;
+
+        // 1. Check POST data (when form is submitted with AJAX)
+        if (!empty($_POST['post_data'])) {
+            parse_str($_POST['post_data'], $post_data);
+            $redemption_id = isset($post_data['sellsuite_redemption_id']) ? intval($post_data['sellsuite_redemption_id']) : 0;
+        }
+
+        // 2. Check direct POST
+        if (!$redemption_id && !empty($_POST['sellsuite_redemption_id'])) {
+            $redemption_id = intval($_POST['sellsuite_redemption_id']);
+        }
+
+        // DO NOT check user meta - this prevents auto-apply on page load
+        // Discount only applies when explicitly submitted in current checkout
+
+        if (!$redemption_id) {
+            return; // No redemption applied
+        }
+
+        global $wpdb;
+
+        // Get the redemption record
+        $redemption = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM {$wpdb->prefix}sellsuite_point_redemptions WHERE id = %d AND user_id = %d",
+                $redemption_id,
+                $user_id
+            )
+        );
+
+        if (!$redemption) {
+            return; // Redemption not found or doesn't belong to user
+        }
+
+        // Only apply if redemption is not yet applied to an order (order_id = 0)
+        if (intval($redemption->order_id) > 0) {
+            return; // Already applied to an order
+        }
+
+        // Apply the discount as a negative fee
+        $discount_value = floatval($redemption->discount_value);
+        if ($discount_value > 0) {
+            WC()->cart->add_fee(
+                __('Points Discount', 'sellsuite'),
+                -$discount_value
+            );
+        }
     }
 
     /**

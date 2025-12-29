@@ -20,13 +20,20 @@ if (!$user_id) {
 
 // Get points data
 $available_points = \SellSuite\Points::get_available_balance($user_id);
-if ($available_points <= 0) {
-    return; // No points to redeem
+
+// Get pending redemption points (points waiting to be permanently deducted)
+$pending_redemption_points = \SellSuite\Redeem_Handler::get_pending_redemption_points($user_id);
+
+// Calculate adjusted available (can only use points not in pending redemption)
+$adjusted_available = max(0, $available_points - $pending_redemption_points);
+
+if ($adjusted_available <= 0) {
+    return; // No points available to redeem
 }
 
 // Get settings
 $settings = \SellSuite\Points::get_settings();
-$conversion_rate = $settings['conversion_rate'] ?? 1;
+$points_per_currency_unit = $settings['conversion_rate'] ?? 1;
 $max_redeemable_percentage = $settings['max_redeemable_percentage'] ?? 20;
 
 // Get WooCommerce currency info
@@ -54,9 +61,20 @@ if ($order_total <= 0) {
     <div class="sellsuite-redemption-content">
         <!-- Available Points Display -->
         <div class="sellsuite-points-info">
+            <?php if ($pending_redemption_points > 0) : ?>
+                <div class="info-item" style="background: #fff3cd; padding: 8px; border-radius: 4px; margin-bottom: 10px; border-left: 3px solid #ffc107;">
+                    <span class="label"><?php esc_html_e('Total Available:', 'sellsuite'); ?></span>
+                    <span class="value"><?php echo intval($available_points); ?></span>
+                    <br/>
+                    <small style="color: #666; font-size: 12px;">
+                        <?php echo intval($pending_redemption_points); ?> <?php esc_html_e('points waiting to redeem', 'sellsuite'); ?>
+                    </small>
+                </div>
+            <?php endif; ?>
+            
             <div class="info-item">
-                <span class="label"><?php esc_html_e('Available Points:', 'sellsuite'); ?></span>
-                <span class="value" id="sellsuite-available-points"><?php echo intval($available_points); ?></span>
+                <span class="label"><?php esc_html_e('Available to Use:', 'sellsuite'); ?></span>
+                <span class="value" id="sellsuite-available-points"><?php echo intval($adjusted_available); ?></span>
             </div>
             <div class="info-item">
                 <span class="label"><?php esc_html_e('Max Redeemable:', 'sellsuite'); ?></span>
@@ -77,7 +95,7 @@ if ($order_total <= 0) {
                     id="sellsuite-redeem-points-input" 
                     name="sellsuite_redeem_points" 
                     min="0" 
-                    max="<?php echo intval($available_points); ?>" 
+                    max="<?php echo intval($adjusted_available); ?>" 
                     placeholder="0"
                     class="form-control"
                 />

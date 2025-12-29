@@ -75,21 +75,41 @@ if ( function_exists( 'wc_get_products' ) ) {
 			<?php 
 			// Get processed points summary data - all calculations handled in User_Dashboard_Data class
 			$points_summary = \SellSuite\User_Dashboard_Data::get_points_summary( $user_id );
-			?>				<!-- Total Earned -->
-				<div class="point-stat-box" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px; border-radius: 6px; text-align: center;">
+			
+			// Get pending redemption points (points waiting to be permanently deducted)
+			$pending_redemption_points = \SellSuite\Redeem_Handler::get_pending_redemption_points( $user_id );
+			
+			// Adjust available to account for pending redemptions
+			$adjusted_available = max( 0, $points_summary['available'] - $pending_redemption_points );
+			?><!-- Total Earned -->
+				<div class="point-stat-box total-earned-points" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px; border-radius: 6px; text-align: center;">
 					<p style="margin: 0; font-size: 12px; opacity: 0.9;">Total Earned</p>
 					<p style="margin: 5px 0 0 0; font-size: 20px; font-weight: 700;">
 						<i class="fas fa-star" style="margin-right: 5px;"></i><?php echo intval( $points_summary['earned'] ); ?>
 					</p>
 				</div>
 
-				<!-- Available Balance -->
-				<div class="point-stat-box" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 12px; border-radius: 6px; text-align: center;">
+				<!-- Available Balance (adjusted for pending redemptions) -->
+				<div class="point-stat-box available-points" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 12px; border-radius: 6px; text-align: center;">
 					<p style="margin: 0; font-size: 12px; opacity: 0.9;">Available</p>
 					<p style="margin: 5px 0 0 0; font-size: 20px; font-weight: 700;">
-						<i class="fas fa-coins" style="margin-right: 5px;"></i><?php echo intval( $points_summary['available'] ); ?>
+						<i class="fas fa-coins" style="margin-right: 5px;"></i><?php echo intval( $adjusted_available ); ?>
 					</p>
 				</div>
+
+				<?php if ( $pending_redemption_points > 0 ) : ?>
+					<!-- Waiting for Redemption (Points being redeemed but order not completed) -->
+					<div class="point-stat-box redemption-pending" style="background: linear-gradient(135deg, #fa9e64 0%, #f5a962 100%); color: white; padding: 12px; border-radius: 6px; text-align: center;">
+						<p style="margin: 0; font-size: 12px; opacity: 0.9;">⏳ Waiting to Redeem</p>
+						<p style="margin: 5px 0 0 0; font-size: 20px; font-weight: 700;">
+							<?php echo intval( $pending_redemption_points ); ?>
+						</p>
+					</div>
+
+					<div class="point-redemption-info" style="background: #fff3cd; color: #856404; padding: 10px; border-radius: 4px; border: 1px solid #ffeaa7; font-size: 12px; text-align: center; grid-column: 1 / -1;">
+						<p style="margin: 0;"><strong>💡</strong> <?php esc_html_e( 'These points will be permanently deducted from your account once your order is completed.', 'sellsuite' ); ?></p>
+					</div>
+				<?php endif; ?>
 
 				<?php if ( $points_summary['pending'] > 0 ) : ?>
 					<!-- Pending Points -->

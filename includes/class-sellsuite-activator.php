@@ -95,12 +95,15 @@ class Activator {
             discount_value decimal(10, 2) NOT NULL DEFAULT 0.00,
             conversion_rate decimal(10, 4) NOT NULL DEFAULT 1.0000,
             currency varchar(10) DEFAULT 'USD',
+            status varchar(30) NOT NULL DEFAULT 'pending',
+            completed_at datetime DEFAULT NULL,
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             notes text,
             PRIMARY KEY  (id),
             KEY user_id (user_id),
             KEY order_id (order_id),
             KEY ledger_id (ledger_id),
+            KEY status (status),
             KEY created_at (created_at)
         ) $charset_collate;";
 

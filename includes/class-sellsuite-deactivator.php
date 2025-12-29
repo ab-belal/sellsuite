@@ -20,11 +20,29 @@ class Deactivator {
         // Clean up transients
         delete_transient('sellsuite_cache');
 
+        // Clean up all pending redemption metadata from users
+        self::cleanup_pending_redemptions();
+
         // Note: We do NOT remove the 'product_viewer' role on deactivation
         // because users might have this role assigned. Removing it would
         // cause data loss. The role will only be removed on plugin uninstall.
         // If you need to remove the role, uncomment the line below:
         // self::remove_custom_roles();
+    }
+
+    /**
+     * Clean up all pending point redemption metadata from users.
+     *
+     * Removes the _pending_point_redemption_id meta from all users.
+     */
+    private static function cleanup_pending_redemptions() {
+        global $wpdb;
+        
+        // Delete all pending redemption metadata
+        $wpdb->query(
+            "DELETE FROM {$wpdb->usermeta} 
+             WHERE meta_key = '_pending_point_redemption_id'"
+        );
     }
 
     /**

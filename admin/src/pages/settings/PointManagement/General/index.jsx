@@ -7,6 +7,9 @@
 import React from 'react';
 
 const General = ({ settings, handleChange }) => {
+    let sellsuiteData = window.sellsuiteData;
+    let bdtCurrency = 'BDT' === sellsuiteData?.currency ? ' Taka (BDT)' : sellsuiteData?.currency;
+    console.log('Sellsuite Data:', sellsuiteData);
     return (
         <div className="point-management-tab-panel">
             <h3>General Settings</h3>
@@ -27,7 +30,7 @@ const General = ({ settings, handleChange }) => {
 
             <div className="point-management-field">
                 <label className="point-management-label">
-                    Conversion Rate
+                    Points Per {sellsuiteData?.currency || 'Currency Unit'}
                     <input
                         type="number"
                         min="0.01"
@@ -38,7 +41,7 @@ const General = ({ settings, handleChange }) => {
                     />
                 </label>
                 <p className="point-management-field-description">
-                    How much 1 point is worth in your store currency (e.g., 1 point = $1)
+                    How many points are required to equal 1 {bdtCurrency} <strong>(e.g., {settings.conversion_rate} points = 1{bdtCurrency})</strong>
                 </p>
             </div>
         </div>
