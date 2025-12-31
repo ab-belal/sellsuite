@@ -54,7 +54,7 @@ class Refund_Handler {
 
             if ($order_points && $order_points->total_points > 0) {
                 // Deduct all points
-                Points::add_ledger_entry(
+                Points::add_points_entry(
                     $user_id,
                     $order_points->total_points,
                     'full_refund',
@@ -129,7 +129,7 @@ class Refund_Handler {
                 $points_to_deduct = floor($order_points->total_points * $proportion);
 
                 if ($points_to_deduct > 0) {
-                    Points::add_ledger_entry(
+                    Points::add_points_entry(
                         $user_id,
                         $points_to_deduct,
                         'partial_refund',
@@ -199,7 +199,7 @@ class Refund_Handler {
 
             if ($deduction) {
                 // Reverse the deduction (add back points)
-                Points::add_ledger_entry(
+                Points::add_points_entry(
                     $user_id,
                     abs($deduction->points_amount),
                     'refund_reversal',

@@ -44,6 +44,8 @@ class Points {
             $user_id
         ));
 
+        error_log(print_r('totalll'.$total, true));
+
         return intval($total);
     }
 
@@ -120,7 +122,7 @@ class Points {
      * @param string $notes Optional notes
      * @return int|false Ledger entry ID or false
      */
-    public static function add_ledger_entry($user_id, $points, $action_type = 'manual', $description = '', $status = 'earned', $order_id = null, $product_id = null, $notes = '') {
+    public static function add_points_entry($user_id, $points, $action_type = 'manual', $description = '', $status = 'earned', $order_id = null, $product_id = null, $notes = '') {
         global $wpdb;
         $table = $wpdb->prefix . 'sellsuite_user_points';
 
@@ -261,14 +263,14 @@ class Points {
      * Add points to a user (legacy compatibility).
      */
     public static function add_points($user_id, $points, $action_type = 'manual', $description = '', $order_id = null) {
-        return self::add_ledger_entry($user_id, $points, $action_type, $description, 'earned', $order_id);
+        return self::add_points_entry($user_id, $points, $action_type, $description, 'earned', $order_id);
     }
 
     /**
      * Deduct points from a user.
      */
     public static function deduct_points($user_id, $points, $action_type = 'redemption', $description = '') {
-        return self::add_ledger_entry($user_id, -abs($points), $action_type, $description, 'earned');
+        return self::add_points_entry($user_id, -abs($points), $action_type, $description, 'earned');
     }
 
     /**
@@ -311,7 +313,7 @@ class Points {
         $points = floor($order_total * $points_per_currency);
 
         // Award points
-            return self::add_ledger_entry(
+            return self::add_points_entry(
             $user_id,
             $points,
             'order_complete',

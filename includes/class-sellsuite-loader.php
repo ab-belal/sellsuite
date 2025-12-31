@@ -760,5 +760,19 @@ class Loader {
      */
     private function define_woocommerce_hooks() {
         new WooCommerce_Integration();
+
+        // Create redemption records when order is placed
+        // $this->add_action('woocommerce_order_status_processing', $this, 'create_redemption_on_order_placement', 10, 1);
+        // $this->add_action('woocommerce_order_status_completed', $this, 'create_redemption_on_order_placement', 10, 1);
     }
+
+    /**
+     * Create redemption record when order is placed.
+     * 
+     * @param int $order_id WooCommerce Order ID
+     */
+    public function create_redemption_on_order_placement($order_id) {
+        Redeem_Handler::create_redemption_record_for_order($order_id);
+    }
+
 }

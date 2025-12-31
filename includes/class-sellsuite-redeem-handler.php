@@ -134,7 +134,7 @@ class Redeem_Handler {
             $redemption_id = $wpdb->insert_id;
 
             // Create ledger deduction entry
-            $ledger_id = Points::add_ledger_entry(
+            $ledger_id = Points::add_points_entry(
                 $user_id,
                 $points,
                 'redemption',
@@ -238,7 +238,7 @@ class Redeem_Handler {
             }
 
             // Add back the points
-            $restore_ledger_id = Points::add_ledger_entry(
+            $restore_ledger_id = Points::add_points_entry(
                 $redemption->user_id,
                 $redemption->redeemed_points,
                 'redemption_reversal',

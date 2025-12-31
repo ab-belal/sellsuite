@@ -113,7 +113,7 @@ class Order_Handler {
             if ($total_points > 0) {
                 // Add pending points entry (save first product_id if available)
                 $first_product_id = !empty($product_ids) ? $product_ids[0] : null;
-                $ledger_id = Points::add_ledger_entry(
+                $ledger_id = Points::add_points_entry(
                     $user_id,
                     $total_points,
                     'order_placement',
@@ -329,7 +329,7 @@ class Order_Handler {
 
             if ($points_to_deduct > 0) {
                 // Add deduction entry
-                Points::add_ledger_entry(
+                Points::add_points_entry(
                     $user_id,
                     $points_to_deduct,
                     'refund',
@@ -641,7 +641,7 @@ class Order_Handler {
             }
 
             // Restore the redeemed points
-            $restore_ledger_id = Points::add_ledger_entry(
+            $restore_ledger_id = Points::add_points_entry(
                 $user_id,
                 $redemption->redeemed_points,
                 'redemption_refund',

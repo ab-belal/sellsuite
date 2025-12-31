@@ -47,7 +47,7 @@ class Admin_Handler {
             }
 
             // Create ledger entry
-            $ledger_id = Points::add_ledger_entry(
+            $ledger_id = Points::add_points_entry(
                 $user_id,
                 0,
                 0,
@@ -143,7 +143,7 @@ class Admin_Handler {
             }
 
             // Create ledger entry
-            $ledger_id = Points::add_ledger_entry(
+            $ledger_id = Points::add_points_entry(
                 $user_id,
                 0,
                 0,
@@ -223,7 +223,7 @@ class Admin_Handler {
 
             if ($current_balance > 0) {
                 // Create deduction ledger entry for total balance
-                $ledger_id = Points::add_ledger_entry(
+                $ledger_id = Points::add_points_entry(
                     $user_id,
                     0,
                     0,
