@@ -140,7 +140,7 @@ class WooCommerce_Integration {
             global $wpdb;
 
             // Get all users with points
-            $table = $wpdb->prefix . 'sellsuite_points_ledger';
+            $table = $wpdb->prefix . 'sellsuite_user_points';
 
             $user_ids = $wpdb->get_col(
                 "SELECT DISTINCT user_id FROM {$table} WHERE status = 'earned'"

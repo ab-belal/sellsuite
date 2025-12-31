@@ -35,7 +35,7 @@ class User_Dashboard_Data {
 	 */
 	public static function get_pending_points( $user_id ) {
 		global $wpdb;
-		$table = $wpdb->prefix . 'sellsuite_points_ledger';
+		$table = $wpdb->prefix . 'sellsuite_user_points';
 
 		$pending_points = $wpdb->get_var(
 			$wpdb->prepare(
@@ -59,7 +59,7 @@ class User_Dashboard_Data {
 	 */
 	public static function get_history_paginated( $user_id, $page = 1, $per_page = 5 ) {
 		global $wpdb;
-		$table = $wpdb->prefix . 'sellsuite_points_ledger';
+		$table = $wpdb->prefix . 'sellsuite_user_points';
 
 		$current_page = max( 1, intval( $page ) );
 		$offset = ( $current_page - 1 ) * $per_page;

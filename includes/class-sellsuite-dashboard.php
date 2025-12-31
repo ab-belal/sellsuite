@@ -55,7 +55,7 @@ class Dashboard {
         global $wpdb;
 
         return intval($wpdb->get_var(
-            "SELECT COUNT(DISTINCT user_id) FROM {$wpdb->prefix}sellsuite_points_ledger"
+            "SELECT COUNT(DISTINCT user_id) FROM {$wpdb->prefix}sellsuite_user_points"
         ));
     }
 
@@ -68,7 +68,7 @@ class Dashboard {
         global $wpdb;
 
         return intval($wpdb->get_var(
-            "SELECT SUM(points_amount) FROM {$wpdb->prefix}sellsuite_points_ledger 
+            "SELECT SUM(points_amount) FROM {$wpdb->prefix}sellsuite_user_points 
             WHERE status IN ('earned', 'pending') AND points_amount > 0"
         ));
     }
@@ -82,7 +82,7 @@ class Dashboard {
         global $wpdb;
 
         return intval($wpdb->get_var(
-            "SELECT ABS(SUM(points_amount)) FROM {$wpdb->prefix}sellsuite_points_ledger 
+            "SELECT ABS(SUM(points_amount)) FROM {$wpdb->prefix}sellsuite_user_points 
             WHERE action_type = 'redemption'"
         ));
     }
@@ -97,7 +97,7 @@ class Dashboard {
 
         return intval($wpdb->get_var(
             $wpdb->prepare(
-                "SELECT SUM(points_amount) FROM {$wpdb->prefix}sellsuite_points_ledger 
+                "SELECT SUM(points_amount) FROM {$wpdb->prefix}sellsuite_user_points 
                 WHERE status = 'expired' OR (expires_at IS NOT NULL AND expires_at < %s)",
                 current_time('mysql')
             )
@@ -113,7 +113,7 @@ class Dashboard {
         global $wpdb;
 
         return intval($wpdb->get_var(
-            "SELECT SUM(points_amount) FROM {$wpdb->prefix}sellsuite_points_ledger 
+            "SELECT SUM(points_amount) FROM {$wpdb->prefix}sellsuite_user_points 
             WHERE status = 'pending'"
         ));
     }
@@ -165,7 +165,7 @@ class Dashboard {
                     user_id,
                     COUNT(*) as transaction_count,
                     SUM(CASE WHEN points_amount > 0 THEN points_amount ELSE 0 END) as earned_points
-                FROM {$wpdb->prefix}sellsuite_points_ledger 
+                FROM {$wpdb->prefix}sellsuite_user_points 
                 WHERE status IN ('earned', 'pending')
                 GROUP BY user_id 
                 ORDER BY earned_points DESC 
@@ -209,7 +209,7 @@ class Dashboard {
                     SUM(CASE WHEN points_amount > 0 THEN points_amount ELSE 0 END) as awarded,
                     SUM(CASE WHEN points_amount < 0 THEN ABS(points_amount) ELSE 0 END) as deducted,
                     COUNT(*) as transaction_count
-                FROM {$wpdb->prefix}sellsuite_points_ledger 
+                FROM {$wpdb->prefix}sellsuite_user_points 
                 WHERE DATE(created_at) >= %s 
                 GROUP BY DATE(created_at) 
                 ORDER BY date ASC",
@@ -234,7 +234,7 @@ class Dashboard {
                 COUNT(*) as count,
                 SUM(CASE WHEN points_amount > 0 THEN points_amount ELSE 0 END) as awarded,
                 SUM(CASE WHEN points_amount < 0 THEN ABS(points_amount) ELSE 0 END) as deducted
-            FROM {$wpdb->prefix}sellsuite_points_ledger 
+            FROM {$wpdb->prefix}sellsuite_user_points 
             GROUP BY action_type"
         );
 
@@ -254,7 +254,7 @@ class Dashboard {
             "SELECT 
                 user_id,
                 SUM(CASE WHEN points_amount > 0 THEN points_amount ELSE 0 END) as total_earned
-            FROM {$wpdb->prefix}sellsuite_points_ledger 
+            FROM {$wpdb->prefix}sellsuite_user_points 
             GROUP BY user_id"
         );
 
@@ -332,7 +332,7 @@ class Dashboard {
         if ($report_type === 'detailed') {
             return $wpdb->get_results(
                 $wpdb->prepare(
-                    "SELECT * FROM {$wpdb->prefix}sellsuite_points_ledger 
+                    "SELECT * FROM {$wpdb->prefix}sellsuite_user_points 
                     WHERE {$where_clause} 
                     ORDER BY created_at DESC",
                     ...$prepare_args
@@ -347,7 +347,7 @@ class Dashboard {
                         SUM(CASE WHEN points_amount > 0 THEN points_amount ELSE 0 END) as total_awarded,
                         SUM(CASE WHEN points_amount < 0 THEN ABS(points_amount) ELSE 0 END) as total_deducted,
                         action_type
-                    FROM {$wpdb->prefix}sellsuite_points_ledger 
+                    FROM {$wpdb->prefix}sellsuite_user_points 
                     WHERE {$where_clause}
                     GROUP BY action_type",
                     ...$prepare_args
@@ -376,7 +376,7 @@ class Dashboard {
                     DATE(expires_at) as expiry_date,
                     SUM(points_amount) as points,
                     COUNT(*) as entry_count
-                FROM {$wpdb->prefix}sellsuite_points_ledger 
+                FROM {$wpdb->prefix}sellsuite_user_points 
                 WHERE expires_at IS NOT NULL 
                 AND expires_at <= %s 
                 AND status IN ('earned', 'pending')

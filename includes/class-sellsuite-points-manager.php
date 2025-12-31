@@ -16,7 +16,7 @@ class Points {
      */
     public static function get_available_balance($user_id) {
         global $wpdb;
-        $table = $wpdb->prefix . 'sellsuite_points_ledger';
+        $table = $wpdb->prefix . 'sellsuite_user_points';
 
         // Get sum of earned and pending points (excluding refunded/cancelled)
         $available = $wpdb->get_var($wpdb->prepare(
@@ -36,7 +36,7 @@ class Points {
      */
     public static function get_earned_points($user_id) {
         global $wpdb;
-        $table = $wpdb->prefix . 'sellsuite_points_ledger';
+        $table = $wpdb->prefix . 'sellsuite_user_points';
 
         $total = $wpdb->get_var($wpdb->prepare(
             "SELECT COALESCE(SUM(points_amount), 0) FROM $table 
@@ -55,7 +55,7 @@ class Points {
      */
     public static function get_pending_points($user_id) {
         global $wpdb;
-        $table = $wpdb->prefix . 'sellsuite_points_ledger';
+        $table = $wpdb->prefix . 'sellsuite_user_points';
 
         $pending = $wpdb->get_var($wpdb->prepare(
             "SELECT COALESCE(SUM(points_amount), 0) FROM $table 
@@ -122,7 +122,7 @@ class Points {
      */
     public static function add_ledger_entry($user_id, $points, $action_type = 'manual', $description = '', $status = 'earned', $order_id = null, $product_id = null, $notes = '') {
         global $wpdb;
-        $table = $wpdb->prefix . 'sellsuite_points_ledger';
+        $table = $wpdb->prefix . 'sellsuite_user_points';
 
         // Calculate expiry date if expiry is enabled
         $expires_at = null;
@@ -166,7 +166,7 @@ class Points {
      */
     public static function get_history($user_id, $limit = 50, $filters = array()) {
         global $wpdb;
-        $table = $wpdb->prefix . 'sellsuite_points_ledger';
+        $table = $wpdb->prefix . 'sellsuite_user_points';
 
         $query = $wpdb->prepare(
             "SELECT * FROM $table WHERE user_id = %d",
@@ -218,7 +218,7 @@ class Points {
      */
     public static function get_ledger_entry($ledger_id) {
         global $wpdb;
-        $table = $wpdb->prefix . 'sellsuite_points_ledger';
+        $table = $wpdb->prefix . 'sellsuite_user_points';
 
         return $wpdb->get_row($wpdb->prepare(
             "SELECT * FROM $table WHERE id = %d",
@@ -236,7 +236,7 @@ class Points {
      */
     public static function update_ledger_status($ledger_id, $new_status, $notes = '') {
         global $wpdb;
-        $table = $wpdb->prefix . 'sellsuite_points_ledger';
+        $table = $wpdb->prefix . 'sellsuite_user_points';
 
         return $wpdb->update(
             $table,
@@ -294,7 +294,7 @@ class Points {
 
         // Check if points already awarded
         global $wpdb;
-        $table = $wpdb->prefix . 'sellsuite_points_ledger';
+        $table = $wpdb->prefix . 'sellsuite_user_points';
         $existing = $wpdb->get_var($wpdb->prepare(
             "SELECT id FROM $table WHERE order_id = %d AND action_type = 'order_complete'",
             $order_id

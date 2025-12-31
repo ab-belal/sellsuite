@@ -523,7 +523,7 @@ class SellSuite_Currency_Handler {
             global $wpdb;
 
             $conversions_table = $wpdb->prefix . 'sellsuite_currency_conversions';
-            $ledger_table = $wpdb->prefix . 'sellsuite_points_ledger';
+            $ledger_table = $wpdb->prefix . 'sellsuite_user_points';
 
             $analytics = array(
                 'total_conversions' => 0,
@@ -720,7 +720,7 @@ class SellSuite_Currency_Handler {
             $base_currency = get_option('woocommerce_currency', 'USD');
 
             // Get user's current balance
-            $table = $wpdb->prefix . 'sellsuite_points_ledger';
+            $table = $wpdb->prefix . 'sellsuite_user_points';
 
             $balance = $wpdb->get_var(
                 $wpdb->prepare(

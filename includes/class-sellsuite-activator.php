@@ -49,9 +49,8 @@ class Activator {
         $charset_collate = $wpdb->get_charset_collate();
 
         // Drop old tables if they exist to start fresh
-        $wpdb->query("DROP TABLE IF EXISTS {$wpdb->prefix}sellsuite_points_ledger");
+        $wpdb->query("DROP TABLE IF EXISTS {$wpdb->prefix}sellsuite_user_points");
         $wpdb->query("DROP TABLE IF EXISTS {$wpdb->prefix}sellsuite_point_redemptions");
-        $wpdb->query("DROP TABLE IF EXISTS {$wpdb->prefix}sellsuite_points");
         $wpdb->query("DROP TABLE IF EXISTS {$wpdb->prefix}sellsuite_notifications");
         $wpdb->query("DROP TABLE IF EXISTS {$wpdb->prefix}sellsuite_notification_logs");
         $wpdb->query("DROP TABLE IF EXISTS {$wpdb->prefix}sellsuite_audit_log");
@@ -62,7 +61,7 @@ class Activator {
         $wpdb->query("DROP TABLE IF EXISTS {$wpdb->prefix}sellsuite_currencies");
 
         // 1. Points Ledger Table - Permanent audit log of all point transactions
-        $points_ledger_table = $wpdb->prefix . 'sellsuite_points_ledger';
+        $points_ledger_table = $wpdb->prefix . 'sellsuite_user_points';
         $points_ledger_sql = "CREATE TABLE $points_ledger_table (
             id bigint(20) NOT NULL AUTO_INCREMENT,
             user_id bigint(20) NOT NULL,
@@ -105,21 +104,6 @@ class Activator {
             KEY ledger_id (ledger_id),
             KEY status (status),
             KEY created_at (created_at)
-        ) $charset_collate;";
-
-        // 3. Old points table (legacy support)
-        $old_points_table = $wpdb->prefix . 'sellsuite_points';
-        $old_points_sql = "CREATE TABLE $old_points_table (
-            id bigint(20) NOT NULL AUTO_INCREMENT,
-            user_id bigint(20) NOT NULL,
-            points int(11) NOT NULL DEFAULT 0,
-            order_id bigint(20) DEFAULT NULL,
-            action_type varchar(50) NOT NULL,
-            description text,
-            created_at datetime DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY  (id),
-            KEY user_id (user_id),
-            KEY order_id (order_id)
         ) $charset_collate;";
 
         // 4. Notifications table

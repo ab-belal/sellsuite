@@ -46,7 +46,7 @@ class Refund_Handler {
             global $wpdb;
             $order_points = $wpdb->get_row(
                 $wpdb->prepare(
-                    "SELECT SUM(points_amount) as total_points FROM {$wpdb->prefix}sellsuite_points_ledger 
+                    "SELECT SUM(points_amount) as total_points FROM {$wpdb->prefix}sellsuite_user_points 
                     WHERE order_id = %d AND status IN ('earned', 'pending') AND action_type IN ('order_placement', 'bonus')",
                     $order_id
                 )
@@ -118,7 +118,7 @@ class Refund_Handler {
             global $wpdb;
             $order_points = $wpdb->get_row(
                 $wpdb->prepare(
-                    "SELECT SUM(points_amount) as total_points FROM {$wpdb->prefix}sellsuite_points_ledger 
+                    "SELECT SUM(points_amount) as total_points FROM {$wpdb->prefix}sellsuite_user_points 
                     WHERE order_id = %d AND status IN ('earned', 'pending') AND action_type IN ('order_placement', 'bonus')",
                     $order_id
                 )
@@ -190,7 +190,7 @@ class Refund_Handler {
             global $wpdb;
             $deduction = $wpdb->get_row(
                 $wpdb->prepare(
-                    "SELECT points_amount FROM {$wpdb->prefix}sellsuite_points_ledger 
+                    "SELECT points_amount FROM {$wpdb->prefix}sellsuite_user_points 
                     WHERE order_id = %d AND notes LIKE %s ORDER BY id DESC LIMIT 1",
                     $order_id,
                     '%refund%'

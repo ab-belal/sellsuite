@@ -182,7 +182,7 @@ The SellSuite Reward Points System is a comprehensive WordPress/WooCommerce plug
 
 ### Phase 1-2 Tables
 1. `wp_sellsuite_points` - Legacy points (backward compatibility)
-2. `wp_sellsuite_points_ledger` - Complete transaction history
+2. `wp_sellsuite_user_points` - Complete transaction history
 3. `wp_sellsuite_point_redemptions` - Redemption tracking
 
 ### Phase 5 Tables

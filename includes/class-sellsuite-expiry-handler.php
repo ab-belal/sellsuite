@@ -114,7 +114,7 @@ class SellSuite_Expiry_Handler {
             global $wpdb;
 
             $user_id = intval($user_id);
-            $table = $wpdb->prefix . 'sellsuite_points_ledger';
+            $table = $wpdb->prefix . 'sellsuite_user_points';
             $expiry_table = $wpdb->prefix . 'sellsuite_point_expirations';
 
             // Calculate expiry date based on rule
@@ -209,7 +209,7 @@ class SellSuite_Expiry_Handler {
             }
 
             // Update ledger status to reflect expiration
-            $ledger_table = $wpdb->prefix . 'sellsuite_points_ledger';
+            $ledger_table = $wpdb->prefix . 'sellsuite_user_points';
             $wpdb->update(
                 $ledger_table,
                 array('status' => 'expired'),
@@ -444,7 +444,7 @@ class SellSuite_Expiry_Handler {
             $user_id = intval($user_id);
             $days = intval($days);
 
-            $table = $wpdb->prefix . 'sellsuite_points_ledger';
+            $table = $wpdb->prefix . 'sellsuite_user_points';
             $rules = self::get_expiry_rules();
 
             if (is_wp_error($rules)) {
@@ -525,7 +525,7 @@ class SellSuite_Expiry_Handler {
 
             $user_id = intval($user_id);
             $expiry_table = $wpdb->prefix . 'sellsuite_point_expirations';
-            $ledger_table = $wpdb->prefix . 'sellsuite_points_ledger';
+            $ledger_table = $wpdb->prefix . 'sellsuite_user_points';
 
             $query = $wpdb->prepare(
                 "SELECT 
@@ -590,7 +590,7 @@ class SellSuite_Expiry_Handler {
 
             // Verify ledger exists and belongs to user
             global $wpdb;
-            $table = $wpdb->prefix . 'sellsuite_points_ledger';
+            $table = $wpdb->prefix . 'sellsuite_user_points';
 
             $ledger = $wpdb->get_row(
                 $wpdb->prepare(

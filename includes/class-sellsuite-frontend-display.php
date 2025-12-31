@@ -125,7 +125,7 @@ class SellSuite_Frontend_Display {
 
         // Get order points from ledger
         global $wpdb;
-        $table = $wpdb->prefix . 'sellsuite_points_ledger';
+        $table = $wpdb->prefix . 'sellsuite_user_points';
 
         $order_points = $wpdb->get_var(
             $wpdb->prepare(

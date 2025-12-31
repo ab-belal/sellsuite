@@ -167,7 +167,7 @@ class Order_Handler {
             global $wpdb;
             $ledger = $wpdb->get_row(
                 $wpdb->prepare(
-                    "SELECT * FROM {$wpdb->prefix}sellsuite_points_ledger WHERE id = %d",
+                    "SELECT * FROM {$wpdb->prefix}sellsuite_user_points WHERE id = %d",
                     $ledger_id
                 )
             );
@@ -176,7 +176,7 @@ class Order_Handler {
                 return;
             }
 
-            $table = $wpdb->prefix . 'sellsuite_points_ledger';
+            $table = $wpdb->prefix . 'sellsuite_user_points';
 
             // Handle order completion - transition pending to earned
             if ($new_status === 'completed') {
@@ -315,7 +315,7 @@ class Order_Handler {
             global $wpdb;
             $original_ledger = $wpdb->get_row(
                 $wpdb->prepare(
-                    "SELECT points_amount FROM {$wpdb->prefix}sellsuite_points_ledger WHERE id = %d",
+                    "SELECT points_amount FROM {$wpdb->prefix}sellsuite_user_points WHERE id = %d",
                     $ledger_id
                 )
             );
@@ -387,7 +387,7 @@ class Order_Handler {
 
         $ledger = $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT points_amount, status, created_at FROM {$wpdb->prefix}sellsuite_points_ledger WHERE id = %d",
+                "SELECT points_amount, status, created_at FROM {$wpdb->prefix}sellsuite_user_points WHERE id = %d",
                 $ledger_id
             )
         );
@@ -575,7 +575,7 @@ class Order_Handler {
             // Update ledger entry status if exists
             if ($redemption->ledger_id) {
                 $wpdb->update(
-                    $wpdb->prefix . 'sellsuite_points_ledger',
+                    $wpdb->prefix . 'sellsuite_user_points',
                     array(
                         'status' => 'earned',
                         'description' => sprintf(__('Redeemed points confirmed - Order #%d completed', 'sellsuite'), $order_id),
@@ -670,7 +670,7 @@ class Order_Handler {
             // Update original ledger entry
             if ($redemption->ledger_id) {
                 $wpdb->update(
-                    $wpdb->prefix . 'sellsuite_points_ledger',
+                    $wpdb->prefix . 'sellsuite_user_points',
                     array(
                         'status' => 'refunded',
                         'description' => sprintf(__('Redemption refunded - Order #%d refunded', 'sellsuite'), $order_id),
