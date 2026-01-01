@@ -762,8 +762,8 @@ class Loader {
         new WooCommerce_Integration();
 
         // Create redemption records when order is placed
-        // $this->add_action('woocommerce_order_status_processing', $this, 'create_redemption_on_order_placement', 10, 1);
-        // $this->add_action('woocommerce_order_status_completed', $this, 'create_redemption_on_order_placement', 10, 1);
+        $this->add_action('woocommerce_order_status_processing', $this, 'create_redemption_on_order_placement', 10, 1);
+        $this->add_action('woocommerce_order_status_completed', $this, 'create_redemption_on_order_placement', 10, 1);
     }
 
     /**

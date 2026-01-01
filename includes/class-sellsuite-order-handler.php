@@ -101,6 +101,11 @@ class Order_Handler {
                 $order_total = floatval($order->get_total());
                 $total_points = intval(floor($order_total));
 
+                // Collect product IDs even when using order total calculation
+                foreach ($order->get_items() as $item) {
+                    $product_ids[] = $item->get_product_id();
+                }
+
                 // Log order-based point awarding
                 do_action('sellsuite_order_points_awarded', $order_total, $total_points, $order_id);
             }

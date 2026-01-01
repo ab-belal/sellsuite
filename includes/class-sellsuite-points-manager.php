@@ -40,7 +40,7 @@ class Points {
 
         $total = $wpdb->get_var($wpdb->prepare(
             "SELECT COALESCE(SUM(points_amount), 0) FROM $table 
-             WHERE user_id = %d AND status IN ('earned', 'redeemed')",
+             WHERE user_id = %d AND status IN ('earned')",
             $user_id
         ));
 
@@ -410,5 +410,26 @@ class Points {
 
         // Calculate: price × points_per_currency
         return intval(floor($price * $points_per_currency));
+    }
+
+    /**
+     * Generate a ledger ID without creating a database entry.
+     * 
+     * This gets the next auto-increment ID that would be used without actually inserting.
+     * 
+     * @return int|false Next auto-increment ID or false on error
+     */
+    public static function generate_ledger_id() {
+        global $wpdb;
+        $table = $wpdb->prefix . 'sellsuite_user_points';
+
+        // Get the next auto-increment ID
+        $result = $wpdb->get_var("SELECT AUTO_INCREMENT FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '{$table}'");
+        
+        if ($result) {
+            return intval($result);
+        }
+
+        return false;
     }
 }

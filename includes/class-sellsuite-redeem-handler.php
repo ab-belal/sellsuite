@@ -103,81 +103,48 @@ class Redeem_Handler {
                 }
             }
 
-            // Create redemption record
-            global $wpdb;
-            $redemption_inserted = $wpdb->insert(
-                $wpdb->prefix . 'sellsuite_point_redemptions',
-                array(
-                    'user_id' => $user_id,
-                    'order_id' => intval($order_id),
-                    'ledger_id' => 0,  // Will be updated by deduction
-                    'redeemed_points' => $points,
-                    'discount_value' => $discount_value,
-                    'conversion_rate' => $points_per_currency_unit,
-                    'currency' => $currency,
-                    'status' => 'pending',  // Mark as pending until order is completed
-                    'created_at' => current_time('mysql'),
-                ),
-                array(
-                    '%d', '%d', '%d', '%d', '%f', '%f', '%s', '%s', '%s'
-                )
+            // Store redemption data in user meta for temporary use during checkout
+            // Database record will be created after order is placed using WooCommerce hook
+            $redemption_data = array(
+                'user_id' => $user_id,
+                'order_id' => intval($order_id),
+                'redeemed_points' => $points,
+                'discount_value' => $discount_value,
+                'conversion_rate' => $points_per_currency_unit,
+                'currency' => $currency,
+                'status' => 'pending',
+                'created_at' => current_time('mysql'),
             );
+            
+            // Store in user meta temporarily - will be processed after order placement
+            update_user_meta($user_id, '_pending_point_redemption', $redemption_data);
 
-            if (!$redemption_inserted) {
-                return array(
-                    'success' => false,
-                    'message' => __('Failed to create redemption record', 'sellsuite'),
-                    'code' => 'database_error',
-                );
-            }
-
+            // Generate a temporary redemption ID for front-end reference
+            $temp_redemption_id = wp_generate_uuid4();
+            
+            // Generate ledger ID without creating database entry
+            global $wpdb;
+            $ledger_id = Points::generate_ledger_id();
             $redemption_id = $wpdb->insert_id;
 
-            // Create ledger deduction entry
-            $ledger_id = Points::add_points_entry(
-                $user_id,
-                $points,
-                'redemption',
-                sprintf(__('Points redeemed for discount: %s %s', 'sellsuite'), $discount_value, $currency),
-                'redeemed',
-                intval($order_id) > 0 ? intval($order_id) : null
-            );
+            // If order ID provided, add order meta for display on thank you page and order details
+            if ($order_id > 0) {
+                add_post_meta($order_id, '_points_redeemed_redemption_id', $temp_redemption_id);
+                add_post_meta($order_id, '_points_discount_applied', $discount_value);
+                add_post_meta($order_id, '_points_ledger_id', $ledger_id);
+            }
 
             if (!$ledger_id) {
-                // Rollback redemption record
-                $wpdb->delete(
-                    $wpdb->prefix . 'sellsuite_point_redemptions',
-                    array('id' => $redemption_id),
-                    array('%d')
-                );
-
                 return array(
                     'success' => false,
-                    'message' => __('Failed to create ledger entry', 'sellsuite'),
+                    'message' => __('Failed to generate ledger entry', 'sellsuite'),
                     'code' => 'ledger_error',
                 );
             }
 
-            // Update redemption with ledger ID
-            $wpdb->update(
-                $wpdb->prefix . 'sellsuite_point_redemptions',
-                array('ledger_id' => $ledger_id),
-                array('id' => $redemption_id),
-                array('%d'),
-                array('%d')
-            );
-
             // DO NOT store in user meta - redemption is only applied when explicitly submitted
             // via form POST data during current checkout session
             // This prevents auto-apply on page reload from previous sessions
-
-            // If order ID provided, add order meta
-            if ($order_id > 0) {
-                add_post_meta($order_id, '_points_redeemed_redemption_id', $redemption_id);
-                add_post_meta($order_id, '_points_discount_applied', $discount_value);
-            }
-
-            do_action('sellsuite_points_redeemed', $user_id, $points, $discount_value, $order_id, $redemption_id);
 
             return array(
                 'success' => true,
@@ -188,7 +155,7 @@ class Redeem_Handler {
                     $currency
                 ),
                 'code' => 'redemption_successful',
-                'redemption_id' => $redemption_id,
+                'redemption_id' => $temp_redemption_id,
                 'points_redeemed' => $points,
                 'discount_value' => $discount_value,
                 'currency' => $currency,
@@ -367,6 +334,160 @@ class Redeem_Handler {
         );
 
         return floatval($result ?: 0);
+    }
+
+    
+    /**
+     * Create redemption record in database after order is placed.
+     * 
+     * This is called by WooCommerce hook when order is completed.
+     * 
+     * @param int $order_id WooCommerce Order ID
+     * @return array Status
+     */
+    public static function create_redemption_record_for_order($order_id) {
+        try {
+            $order = wc_get_order($order_id);
+            if (!$order) {
+                error_log('SellSuite: Order not found for redemption record creation. Order ID: ' . $order_id);
+                return array(
+                    'success' => false,
+                    'message' => __('Order not found', 'sellsuite'),
+                );
+            }
+
+            $user_id = $order->get_user_id();
+            if (!$user_id) {
+                // Guest checkout - skip redemption record
+                return array(
+                    'success' => false,
+                    'message' => __('Guest checkout - redemption not available', 'sellsuite'),
+                );
+            }
+
+            // Get pending redemption data from user meta
+            $redemption_data = get_user_meta($user_id, '_pending_point_redemption', true);
+            
+            if (!$redemption_data || empty($redemption_data)) {
+                // No pending redemption - nothing to do
+                return array(
+                    'success' => false,
+                    'message' => __('No pending redemption found', 'sellsuite'),
+                );
+            }
+
+            global $wpdb;
+
+            // Insert redemption record with actual order ID
+            $redemption_inserted = $wpdb->insert(
+                $wpdb->prefix . 'sellsuite_point_redemptions',
+                array(
+                    'user_id' => $user_id,
+                    'order_id' => $order_id,
+                    'ledger_id' => 0,  // Will be updated after ledger entry
+                    'redeemed_points' => intval($redemption_data['redeemed_points']),
+                    'discount_value' => floatval($redemption_data['discount_value']),
+                    'conversion_rate' => floatval($redemption_data['conversion_rate']),
+                    'currency' => sanitize_text_field($redemption_data['currency']),
+                    'status' => 'completed',  // Mark as completed since order is placed
+                    'created_at' => current_time('mysql'),
+                ),
+                array(
+                    '%d', '%d', '%d', '%d', '%f', '%f', '%s', '%s'
+                )
+            );
+
+            if (!$redemption_inserted) {
+                error_log('SellSuite: Failed to insert redemption record for order ' . $order_id);
+                return array(
+                    'success' => false,
+                    'message' => __('Failed to create redemption record', 'sellsuite'),
+                    'code' => 'database_error',
+                );
+            }
+
+            $redemption_id = $wpdb->insert_id;
+
+            $ledger_id = Points::generate_ledger_id();
+
+            // Create ledger deduction entry with product ID
+            // $ledger_id = Points::add_points_entry(
+            //     $user_id,
+            //     intval($redemption_data['redeemed_points']),
+            //     'redemption',
+            //     sprintf(
+            //         __('Points redeemed for order #%d: %s %s', 'sellsuite'),
+            //         $order_id,
+            //         $redemption_data['discount_value'],
+            //         $redemption_data['currency']
+            //     ),
+            //     'redeemed',
+            //     $order_id,
+            //     $first_product_id
+            // );
+
+            if (!$ledger_id) {
+                // Rollback redemption record
+                $wpdb->delete(
+                    $wpdb->prefix . 'sellsuite_point_redemptions',
+                    array('id' => $redemption_id),
+                    array('%d')
+                );
+
+                error_log('SellSuite: Failed to create ledger entry for order ' . $order_id);
+                return array(
+                    'success' => false,
+                    'message' => __('Failed to create ledger entry', 'sellsuite'),
+                    'code' => 'ledger_error',
+                );
+            }
+
+            // Update redemption with ledger ID
+            $wpdb->update(
+                $wpdb->prefix . 'sellsuite_point_redemptions',
+                array('ledger_id' => $ledger_id),
+                array('id' => $redemption_id),
+                array('%d'),
+                array('%d')
+            );
+
+            // Store redemption ID in order meta
+            add_post_meta($order_id, '_points_redeemed_redemption_id', $redemption_id);
+            add_post_meta($order_id, '_points_discount_applied', $redemption_data['discount_value']);
+
+            // Clear pending redemption from user meta
+            delete_user_meta($user_id, '_pending_point_redemption');
+
+            // Fire action hook
+            do_action(
+                'sellsuite_points_redeemed_on_order',
+                $user_id,
+                intval($redemption_data['redeemed_points']),
+                floatval($redemption_data['discount_value']),
+                $order_id,
+                $redemption_id
+            );
+
+            error_log('SellSuite: Redemption record created successfully for order ' . $order_id . '. Redemption ID: ' . $redemption_id);
+
+            return array(
+                'success' => true,
+                'message' => sprintf(
+                    __('Redemption record created for order #%d', 'sellsuite'),
+                    $order_id
+                ),
+                'redemption_id' => $redemption_id,
+                'order_id' => $order_id,
+            );
+
+        } catch (\Exception $e) {
+            error_log('SellSuite: Error creating redemption record: ' . $e->getMessage());
+            return array(
+                'success' => false,
+                'message' => __('An error occurred while creating redemption record', 'sellsuite'),
+                'code' => 'system_error',
+            );
+        }
     }
 
     /**
