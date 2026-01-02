@@ -57,11 +57,11 @@ class WooCommerce_Integration {
     }
 
     /**
-     * Filter order statuses in admin to show only Completed and Cancelled.
+     * Filter order statuses in admin to show only Processing, Completed and Cancelled.
      * This filters the order status select box on the order edit page.
      *
-     * @param array $statuses All available WooCommerce order statuses.
-     * @return array Filtered array with only 'completed' and 'cancelled' statuses on admin pages.
+     * @param array $order_statuses All available WooCommerce order statuses.
+     * @return array Filtered array with only 'processing', 'completed' and 'cancelled' statuses on admin pages.
      */
     public function sellsuite_limit_order_statuses($order_statuses) {
         // Only filter on admin pages
