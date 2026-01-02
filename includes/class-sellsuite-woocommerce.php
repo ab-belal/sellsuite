@@ -32,6 +32,9 @@ class WooCommerce_Integration {
         // Apply point redemption discount to cart as a fee
         add_action('woocommerce_cart_calculate_fees', array($this, 'apply_redemption_discount_fee'));
 
+        // Filter order statuses in admin to show only Completed and Cancelled
+        add_filter('wc_order_statuses', array($this, 'sellsuite_limit_order_statuses'), 10, 1);
+
         // PHASE 7: Point expiry scheduled processing
         add_action('sellsuite_process_point_expirations', array($this, 'process_all_expirations'));
 
@@ -51,6 +54,40 @@ class WooCommerce_Integration {
         }
 
         return $template;
+    }
+
+    /**
+     * Filter order statuses in admin to show only Completed and Cancelled.
+     * This filters the order status select box on the order edit page.
+     *
+     * @param array $statuses All available WooCommerce order statuses.
+     * @return array Filtered array with only 'completed' and 'cancelled' statuses on admin pages.
+     */
+    public function sellsuite_limit_order_statuses($order_statuses) {
+        // Only filter on admin pages
+        if (!is_admin()) {
+            return $order_statuses;
+        }
+
+        // Check if we're on the order edit page or order list page
+        $screen = get_current_screen();
+        if (!$screen || !in_array($screen->id, array('shop_order', 'edit-shop_order', 'woocommerce_page_wc-orders'), true)) {
+            return $order_statuses;
+        }
+
+        $allowed_statuses = array(
+            'wc-processing',
+            'wc-completed',
+            'wc-cancelled',
+        );
+
+        foreach ( $order_statuses as $status_key => $status_label ) {
+            if ( ! in_array( $status_key, $allowed_statuses, true ) ) {
+                unset( $order_statuses[ $status_key ] );
+            }
+        }
+
+        return $order_statuses;
     }
 
     /**
