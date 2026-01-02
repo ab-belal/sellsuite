@@ -514,4 +514,19 @@ class Redeem_Handler {
 
         return intval($result ?: 0);
     }
+
+    /**
+     * Cancel pending redemption during checkout (before order is placed).
+     * Deletes the _pending_point_redemption user meta.
+     * @param int $user_id User ID
+     * @return array Status
+     */
+    public static function cancel_pending_redemption($user_id) {
+        delete_user_meta($user_id, '_pending_point_redemption');
+        return array(
+            'success' => true,
+            'message' => __('Pending redemption cancelled.', 'sellsuite'),
+        );
+    }
+
 }

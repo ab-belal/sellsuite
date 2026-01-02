@@ -339,6 +339,7 @@
                         ${this.formatCurrencyForTable(-discountValue)}
                         <button type="button" class="sellsuite-cancel-redemption-btn" title="Cancel redemption" style="margin-left: 10px; background: none; border: none; color: #dc3545; cursor: pointer; padding: 0; font-size: 16px;">
                             <span class="dashicons dashicons-no" style="width: auto; height: auto; font-size: 16px;"></span>
+                            <span class="dashicons dashicons-update" style="width: auto; height: auto; font-size: 16px; display: none;"></span>
                         </button>
                     </td>
                 </tr>
@@ -408,10 +409,13 @@
                 return;
             }
 
-            const nonce = window.sellsuiteRedemptionData.nonce || '';
+            $('.sellsuite-cancel-redemption-btn .dashicons-no').hide();
+            $('.sellsuite-cancel-redemption-btn .dashicons-update').show();
 
+            // If redemption is only in user meta (pending, not DB), use new endpoint
+            const nonce = window.sellsuiteRedemptionData.nonce || '';
             $.ajax({
-                url: `/wp-json/sellsuite/v1/redemptions/${this.redemptionId}/cancel`,
+                url: '/wp-json/sellsuite/v1/cancel-pending-redemption',
                 type: 'POST',
                 dataType: 'json',
                 headers: {
@@ -419,7 +423,7 @@
                 },
                 success: (response) => {
                     if (response.success) {
-                        this.onCancellationSuccess(response);
+                        window.location.reload();
                         this.showSuccess('Redemption cancelled');
                     } else {
                         this.showError(response.message || 'Cancellation failed');

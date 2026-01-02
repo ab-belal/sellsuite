@@ -94,5 +94,17 @@
     margin: 0;
 }
 
+.sellsuite-cancel-redemption-btn .dashicons-update {
+    animation: sellsuite-spin 1s linear infinite;
+}
+
+@keyframes sellsuite-spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
 
 /*# sourceMappingURL=frontend.css.map */

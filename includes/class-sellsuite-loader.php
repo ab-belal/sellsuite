@@ -377,6 +377,21 @@ class Loader {
                 return is_user_logged_in();
             }
         ));
+
+        register_rest_route('sellsuite/v1', '/cancel-pending-redemption', array(
+            'methods' => 'POST',
+            'permission_callback' => function() {
+                return is_user_logged_in();
+            },
+            'callback' => function($request) {
+                $user_id = get_current_user_id();
+                if (!$user_id) {
+                    return new WP_Error('no_user', 'User not logged in', array('status' => 403));
+                }
+                $result = Redeem_Handler::cancel_pending_redemption($user_id);
+                return rest_ensure_response($result);
+            }
+        ));
     }
 
     /**
