@@ -19,7 +19,7 @@ if (!$user_id) {
 }
 
 // Get points data
-$available_points = \SellSuite\Points::get_available_balance($user_id);
+$available_points = \SellSuite\Points::get_available_points($user_id);
 
 // Get pending redemption points (points waiting to be permanently deducted)
 $pending_redemption_points = \SellSuite\Redeem_Handler::get_pending_redemption_points($user_id);

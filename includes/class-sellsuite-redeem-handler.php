@@ -49,7 +49,7 @@ class Redeem_Handler {
             }
 
             // Get user's available balance
-            $available_balance = Points::get_available_balance($user_id);
+            $available_balance = Points::get_available_points($user_id);
             
             // Get pending redemption points and calculate adjusted available
             $pending_redemption_points = self::get_pending_redemption_points($user_id);

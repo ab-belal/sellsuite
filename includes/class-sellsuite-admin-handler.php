@@ -130,7 +130,7 @@ class Admin_Handler {
             }
 
             // Check available balance
-            $available = Points::get_available_balance($user_id);
+            $available = Points::get_available_points($user_id);
             if ($available < $points) {
                 return array(
                     'success' => false,
@@ -219,7 +219,7 @@ class Admin_Handler {
             }
 
             // Get current balance
-            $current_balance = Points::get_available_balance($user_id);
+            $current_balance = Points::get_available_points($user_id);
 
             if ($current_balance > 0) {
                 // Create deduction ledger entry for total balance

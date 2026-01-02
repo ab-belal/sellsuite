@@ -14,18 +14,8 @@ class Points {
      * @param int $user_id User ID
      * @return int Available balance
      */
-    public static function get_available_balance($user_id) {
-        global $wpdb;
-        $table = $wpdb->prefix . 'sellsuite_user_points';
-
-        // Get sum of earned and pending points (excluding refunded/cancelled)
-        $available = $wpdb->get_var($wpdb->prepare(
-            "SELECT COALESCE(SUM(points_amount), 0) FROM $table 
-             WHERE user_id = %d AND status IN ('earned') AND (expires_at IS NULL OR expires_at > NOW())",
-            $user_id
-        ));
-
-        return intval($available);
+    public static function get_available_points($user_id) {
+       return self::get_earned_points($user_id) - self::get_redeemed_points($user_id);
     }
 
     /**
@@ -66,6 +56,25 @@ class Points {
         ));
 
         return intval($pending);
+    }
+
+    /**
+     * Get redeemed points from sellsuite_point_redemptions table which status is 'completed'.
+     * 
+     * @param int $user_id User ID
+     * @return int Redeemed points
+     */
+    public static function get_redeemed_points($user_id) {
+        global $wpdb;
+        $table = $wpdb->prefix . 'sellsuite_point_redemptions';
+
+        // Get sum of redeemed_points where status is 'completed' for the user
+        $total = $wpdb->get_var($wpdb->prepare(
+            "SELECT COALESCE(SUM(redeemed_points), 0) FROM $table WHERE user_id = %d AND status = 'completed'",
+            $user_id
+        ));
+
+        return intval($total);
     }
 
     /**
@@ -256,7 +265,7 @@ class Points {
      * Get total points for a user (legacy compatibility).
      */
     public static function get_user_total_points($user_id) {
-        return self::get_available_balance($user_id);
+        return self::get_available_points($user_id);
     }
 
     /**

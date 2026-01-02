@@ -17,13 +17,15 @@ class User_Dashboard_Data {
 	 */
 	public static function get_points_summary( $user_id ) {
 		$earned_points = Points::get_earned_points( $user_id );
-		$available_balance = Points::get_available_balance( $user_id );
+		$available_balance = Points::get_available_points( $user_id );
 		$pending_points = self::get_pending_points( $user_id );
+		$redeemed_points = Points::get_redeemed_points( $user_id );
 
 		return array(
 			'earned' => intval( $earned_points ),
 			'available' => intval( $available_balance ),
 			'pending' => intval( $pending_points ),
+			'total_redeemed' => intval( $redeemed_points ),
 		);
 	}
 

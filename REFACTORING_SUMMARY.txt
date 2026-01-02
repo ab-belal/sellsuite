@@ -76,7 +76,7 @@
 │  ↓                                                                         │
 │  Dashboard_Data Class                                                      │
 │  ├── Points::get_earned_points()                                           │
-│  ├── Points::get_available_balance()                                       │
+│  ├── Points::get_available_points()                                       │
 │  └── Database Query: SELECT pending points                                 │
 │  ↓                                                                         │
 │  Return: ['earned' => 150, 'available' => 100, 'pending' => 50]          │
