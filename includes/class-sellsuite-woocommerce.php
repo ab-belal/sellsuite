@@ -40,7 +40,83 @@ class WooCommerce_Integration {
 
         // PHASE 8: Currency exchange rate caching and updates
         add_action('sellsuite_update_exchange_rates', array($this, 'refresh_exchange_rates'));
+
+        add_action('woocommerce_cart_calculate_fees', array($this, 'sellsuite_apply_point_discount'), 20);
+        add_action('woocommerce_checkout_create_order', array($this, 'sellsuite_save_redemption_to_order'), 20, 2);
+        add_action('woocommerce_thankyou', array($this, 'sellsuite_clear_redemption_session'));
+        
+        // Display redemption on thank you page
+        add_action('woocommerce_thankyou', array($this, 'display_redemption_on_thankyou'), 15);
+        
+        // Display redemption in order details (frontend and backend)
+        add_action('woocommerce_order_details_after_order_table', array($this, 'display_redemption_in_order_details'), 10);
+        add_action('woocommerce_admin_order_details_after_order_details', array($this, 'display_redemption_in_order_details'), 10);
     }
+
+    
+
+    /**
+     * Applies a point redemption discount to the WooCommerce cart.
+     *
+     * This function is called in the `woocommerce_calculate_fees` hook to apply
+     * the discount amount set in the session. It will only apply if the
+     * user is not an admin and if the `DOING_AJAX` constant is defined.
+     *
+     * @param WC_Cart $cart The WooCommerce cart object.
+     *
+     * @return void
+     */
+    public function sellsuite_apply_point_discount( $cart ) {
+        if ( is_admin() && ! defined( 'DOING_AJAX' ) ) {
+            return;
+        }
+
+        $redeemed_points = WC()->session->get( 'sellsuite_redeemed_points' );
+        $discount_amount = WC()->session->get( 'sellsuite_redeem_discount' );
+
+        if ( ! $redeemed_points || ! $discount_amount ) {
+            return;
+        }
+
+        $cart->add_fee(
+            __( 'Point Redemption Discount', 'sellsuite' ),
+            -abs( $discount_amount ),
+            false
+        );
+    }
+
+    /**
+     * Saves point redemption data to an order.
+     *
+     * Called in the `woocommerce_new_order` hook, this function saves the
+     * point redemption data to the order meta for future reference.
+     *
+     * @param WC_Order $order The WooCommerce order object.
+     * @param array $data The point redemption data array.
+     */
+    public function sellsuite_save_redemption_to_order( $order, $data ) {
+        $redeemed_points = WC()->session->get( 'sellsuite_redeemed_points' );
+        $discount_amount = WC()->session->get( 'sellsuite_redeem_discount' );
+
+        if ( $redeemed_points && $discount_amount ) {
+            $order->update_meta_data( '_sellsuite_redeemed_points', $redeemed_points );
+            $order->update_meta_data( '_sellsuite_redeem_discount', $discount_amount );
+        }
+    }
+
+    /**
+     * Clears point redemption data from the session.
+     *
+     * This function removes the point redemption data stored in the
+     * WooCommerce session after the order is placed.
+     *
+     * @return void
+     */
+    public function sellsuite_clear_redemption_session() {
+        WC()->session->__unset( 'sellsuite_redeemed_points' );
+        WC()->session->__unset( 'sellsuite_redeem_discount' );
+    }
+
 
     public function locate_plugin_template($template, $template_name, $template_path) {
         $plugin_template = SELLSUITE_PLUGIN_DIR . 'templates/woocommerce/' . $template_name;
@@ -95,6 +171,8 @@ class WooCommerce_Integration {
      *
      * This hooks into woocommerce_cart_calculate_fees to apply the discount
      * that was created when the user redeemed points at checkout.
+     * During checkout, redemption is stored in user meta (_pending_point_redemption),
+     * not in database yet.
      *
      * @return void
      */
@@ -114,56 +192,25 @@ class WooCommerce_Integration {
             return; // Guest checkout - no redemption
         }
 
-        // Try to get redemption ID from POST data ONLY (not from user meta)
-        // This ensures discount is only applied when user explicitly applies it during current checkout
-        $redemption_id = 0;
-
-        // 1. Check POST data (when form is submitted with AJAX)
-        if (!empty($_POST['post_data'])) {
-            parse_str($_POST['post_data'], $post_data);
-            $redemption_id = isset($post_data['sellsuite_redemption_id']) ? intval($post_data['sellsuite_redemption_id']) : 0;
+        // Get pending redemption from user meta (stored during checkout by applyRedemption() JS)
+        // This is temporary data that exists only during current checkout session
+        $redemption_data = get_user_meta($user_id, '_pending_point_redemption', true);
+        
+        if (empty($redemption_data) || !is_array($redemption_data)) {
+            return; // No pending redemption
         }
 
-        // 2. Check direct POST
-        if (!$redemption_id && !empty($_POST['sellsuite_redemption_id'])) {
-            $redemption_id = intval($_POST['sellsuite_redemption_id']);
-        }
-
-        // DO NOT check user meta - this prevents auto-apply on page load
-        // Discount only applies when explicitly submitted in current checkout
-
-        if (!$redemption_id) {
-            return; // No redemption applied
-        }
-
-        global $wpdb;
-
-        // Get the redemption record
-        $redemption = $wpdb->get_row(
-            $wpdb->prepare(
-                "SELECT * FROM {$wpdb->prefix}sellsuite_point_redemptions WHERE id = %d AND user_id = %d",
-                $redemption_id,
-                $user_id
-            )
-        );
-
-        if (!$redemption) {
-            return; // Redemption not found or doesn't belong to user
-        }
-
-        // Only apply if redemption is not yet applied to an order (order_id = 0)
-        if (intval($redemption->order_id) > 0) {
-            return; // Already applied to an order
+        // Extract discount value from redemption data
+        $discount_value = floatval($redemption_data['discount_value'] ?? 0);
+        if ($discount_value <= 0) {
+            return; // Invalid discount value
         }
 
         // Apply the discount as a negative fee
-        $discount_value = floatval($redemption->discount_value);
-        if ($discount_value > 0) {
-            WC()->cart->add_fee(
-                __('Points Discount', 'sellsuite'),
-                -$discount_value
-            );
-        }
+        WC()->cart->add_fee(
+            __('Points Discount', 'sellsuite'),
+            -$discount_value
+        );
     }
 
     /**
@@ -213,6 +260,83 @@ class WooCommerce_Integration {
         } catch (Exception $e) {
             error_log('SellSuite Exchange Rate Refresh Error: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Display points redemption discount on order thank you page.
+     *
+     * Shows the points redeemed and discount applied on the order thank you page.
+     *
+     * @param int $order_id Order ID
+     * @return void
+     */
+    public function display_redemption_on_thankyou($order_id) {
+        $order = wc_get_order($order_id);
+        if (!$order) {
+            return;
+        }
+
+        // Get redemption data from order meta
+        $redeemed_points = $order->get_meta('_sellsuite_redeemed_points');
+        $discount_amount = $order->get_meta('_sellsuite_redeem_discount');
+
+        if (!$redeemed_points || !$discount_amount) {
+            return; // No redemption applied to this order
+        }
+
+        ?>
+        <div style="margin: 20px 0; padding: 15px; background: #f5f5f5; border-left: 4px solid #28a745; border-radius: 4px;">
+            <h3 style="margin-top: 0; color: #28a745;"><?php esc_html_e('Points Redemption', 'sellsuite'); ?></h3>
+            <p>
+                <strong><?php esc_html_e('Points Used:', 'sellsuite'); ?></strong> 
+                <?php echo intval($redeemed_points); ?>
+            </p>
+            <p>
+                <strong><?php esc_html_e('Discount Applied:', 'sellsuite'); ?></strong> 
+                <?php echo wc_price($discount_amount); ?>
+            </p>
+        </div>
+        <?php
+    }
+
+    /**
+     * Display points redemption info in order details (backend and frontend).
+     *
+     * Shows redemption details in order meta box and order review.
+     *
+     * @param int $order_id Order ID
+     * @return void
+     */
+    public function display_redemption_in_order_details($order_id) {
+        $order = wc_get_order($order_id);
+        if (!$order) {
+            return;
+        }
+
+        // Get redemption data from order meta
+        $redeemed_points = $order->get_meta('_sellsuite_redeemed_points');
+        $discount_amount = $order->get_meta('_sellsuite_redeem_discount');
+
+        if (!$redeemed_points || !$discount_amount) {
+            return; // No redemption applied to this order
+        }
+
+        ?>
+        <div style="margin: 15px 0; padding: 12px; background: #f0f8ff; border: 1px solid #b3d9ff; border-radius: 4px;">
+            <p style="margin: 0 0 8px 0;">
+                <strong style="color: #0073aa;"><?php esc_html_e('Customer Loyalty Points Used', 'sellsuite'); ?></strong>
+            </p>
+            <p style="margin: 0;">
+                <?php 
+                echo sprintf(
+                    esc_html__('%s points redeemed for %s discount', 'sellsuite'),
+                    '<strong>' . intval($redeemed_points) . '</strong>',
+                    '<strong>' . wc_price($discount_amount) . '</strong>'
+                );
+                ?>
+            </p>
+        </div>
+        <?php
     }
 
 }

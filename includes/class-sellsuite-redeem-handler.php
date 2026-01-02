@@ -454,6 +454,9 @@ class Redeem_Handler {
             // Store redemption ID in order meta
             add_post_meta($order_id, '_points_redeemed_redemption_id', $redemption_id);
             add_post_meta($order_id, '_points_discount_applied', $redemption_data['discount_value']);
+            // Also store for display on thank you page and order details
+            add_post_meta($order_id, '_sellsuite_redeemed_points', intval($redemption_data['redeemed_points']));
+            add_post_meta($order_id, '_sellsuite_redeem_discount', floatval($redemption_data['discount_value']));
 
             // Clear pending redemption from user meta
             delete_user_meta($user_id, '_pending_point_redemption');
@@ -467,8 +470,6 @@ class Redeem_Handler {
                 $order_id,
                 $redemption_id
             );
-
-            error_log('SellSuite: Redemption record created successfully for order ' . $order_id . '. Redemption ID: ' . $redemption_id);
 
             return array(
                 'success' => true,

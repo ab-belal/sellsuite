@@ -26,6 +26,7 @@ class Order_Handler {
         // Handle refunds
         add_action('woocommerce_order_refunded', array(self::class, 'handle_order_refund'), 10, 2);
         add_action('woocommerce_order_refunded', array(self::class, 'handle_redemption_on_refund'), 11, 2);
+
     }
 
     /**
@@ -696,5 +697,7 @@ class Order_Handler {
             return false;
         }
     }
+
+
 }
 
