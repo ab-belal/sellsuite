@@ -389,7 +389,7 @@ class Redeem_Handler {
                     'discount_value' => floatval($redemption_data['discount_value']),
                     'conversion_rate' => floatval($redemption_data['conversion_rate']),
                     'currency' => sanitize_text_field($redemption_data['currency']),
-                    'status' => 'completed',  // Mark as completed since order is placed
+                    'status' => 'pending',  // Mark as pending until order is completed by admin
                     'created_at' => current_time('mysql'),
                 ),
                 array(

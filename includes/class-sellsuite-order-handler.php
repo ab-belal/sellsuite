@@ -499,6 +499,12 @@ class Order_Handler {
                 return false;
             }
 
+            // Don't update if redemption is already completed
+            // This prevents reverting completed status when thank you page is reloaded
+            if ($redemption->status === 'completed') {
+                return true; // Already completed, nothing to do
+            }
+
             // Update redemption with actual order_id and mark as pending
             $wpdb->update(
                 $wpdb->prefix . 'sellsuite_point_redemptions',
