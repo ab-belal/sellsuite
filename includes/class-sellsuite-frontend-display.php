@@ -375,6 +375,7 @@ class SellSuite_Frontend_Display {
                 'has_pending_redemption' => !empty($pending_redemption_data), // Check if redemption is active
                 'pending_redeemed_points' => $pending_redeemed_points, // Points being redeemed
                 'pending_discount_value' => $pending_discount_value, // Discount being applied
+                'no_points_on_redeem' => isset($settings['no_points_on_redeem']) ? (bool) $settings['no_points_on_redeem'] : true, // Setting to disable points on redemption
                 'currency' => get_woocommerce_currency(),
                 'currency_symbol' => get_woocommerce_currency_symbol(),
                 'currency_position' => get_option( 'woocommerce_currency_pos' ),

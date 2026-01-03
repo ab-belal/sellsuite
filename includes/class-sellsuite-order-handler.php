@@ -64,6 +64,8 @@ class Order_Handler {
             $total_points = 0;
             $product_ids = array();
             $settings = Points::get_settings();
+            $no_points_on_redeem = isset($settings['no_points_on_redeem']) ? (bool) $settings['no_points_on_redeem'] : true;
+            $should_award_zero_points = false; // Flag to track if we explicitly set points to 0
             
             // Check if points should be based on order total or product items
             // If products have custom points set, use per-item calculation
@@ -108,6 +110,7 @@ class Order_Handler {
                 // Deduct point redemption discount from subtotal before calculating earned points
                 // This ensures earned points = (subtotal - redeemed_discount)
                 $point_redemption_discount = 0;
+                $has_redemption = false;
                 
                 // Check for point redemption fee in order fees
                 foreach ($order->get_fees() as $fee) {
@@ -116,12 +119,19 @@ class Order_Handler {
                     if (stripos($fee_name, 'point') !== false) {
                         // Fee amount is negative for discounts, so we take absolute value
                         $point_redemption_discount += abs(floatval($fee->get_total()));
+                        $has_redemption = true;
                     }
                 }
 
-                // Calculate final subtotal after discount
-                $final_subtotal = max(0, $order_subtotal - $point_redemption_discount);
-                $total_points = intval(floor($final_subtotal));
+                // If redemption is active AND setting is enabled, award 0 points
+                if ($has_redemption && $no_points_on_redeem) {
+                    $total_points = 0;
+                    $should_award_zero_points = true; // Flag that we explicitly set to 0
+                } else {
+                    // Calculate final subtotal after discount
+                    $final_subtotal = max(0, $order_subtotal - $point_redemption_discount);
+                    $total_points = intval(floor($final_subtotal));
+                }
 
                 // Collect product IDs even when using order total calculation
                 foreach ($order->get_items() as $item) {
@@ -133,7 +143,8 @@ class Order_Handler {
             }
 
             // Apply global order point settings if no product-specific points
-            if ($total_points === 0) {
+            // But skip if we explicitly set points to 0 due to no_points_on_redeem setting
+            if ($total_points === 0 && !$should_award_zero_points) {
                 $total_points = self::calculate_order_points($order);
             }
 

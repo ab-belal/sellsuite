@@ -18,6 +18,20 @@ const EarningPoints = ({ settings, handleChange }) => {
     return (
         <div className="point-management-tab-panel">
             <h3>Earning Points</h3>
+            
+            <div className="point-management-field">
+                <label className="point-management-toggle">
+                    <input
+                        type="checkbox"
+                        checked={settings.no_points_on_redeem}
+                        onChange={(e) => handleChange('no_points_on_redeem', e.target.checked)}
+                    />
+                    <span className="point-management-toggle-label">Disable Point Earning During Redemption </span>
+                </label>
+                <p className="point-management-field-description">
+                    When enabled, customers will not earn reward points on orders where reward points are used during checkout.
+                </p>
+            </div>
 
             <div className="point-management-field">
                 <label className="point-management-label">
@@ -25,7 +39,7 @@ const EarningPoints = ({ settings, handleChange }) => {
                     <select
                         value={settings.point_calculation_method}
                         onChange={(e) => handleChange('point_calculation_method', e.target.value)}
-                        disabled={!settings.points_enabled}
+                        disabled={settings.no_points_on_redeem}
                     >
                         <option value="fixed">Fixed Points per {currency}</option>
                         <option value="percentage">Percentage of Price</option>
@@ -43,7 +57,7 @@ const EarningPoints = ({ settings, handleChange }) => {
                             step="1"
                             value={settings.points_per_currency}
                             onChange={(e) => handleChange('points_per_currency', parseInt(e.target.value))}
-                            disabled={!settings.points_enabled}
+                            disabled={settings.no_points_on_redeem}
                         />
                     </label>
                     <p className="point-management-field-description">
@@ -63,7 +77,7 @@ const EarningPoints = ({ settings, handleChange }) => {
                             step="0.1"
                             value={settings.points_percentage}
                             onChange={(e) => handleChange('points_percentage', parseFloat(e.target.value))}
-                            disabled={!settings.points_enabled}
+                            disabled={settings.no_points_on_redeem}
                         />
                     </label>
                     <p className="point-management-field-description">

@@ -57,6 +57,12 @@
                 if (pendingPoints > 0 && pendingDiscount > 0) {
                     this.redemptionId = 'pending';
                     this.redemptionApplied = true;
+                    
+                    // Show redemption notice if setting is enabled and redemption is active
+                    const noPointsOnRedeem = window.sellsuiteRedemptionData.no_points_on_redeem || false;
+                    if (noPointsOnRedeem) {
+                        this.showRedemptionNotice();
+                    }
                 }
             }
 
@@ -272,22 +278,37 @@
             this.availablePoints = response.remaining_balance;
             $('#sellsuite-available-points').text(this.availablePoints);
 
-            // Update earned points display to account for the redemption discount
-            // Earned points = (Original Subtotal - Redemption Discount)
+            // Get the setting for disabling points on redemption
+            const noPointsOnRedeem = window.sellsuiteRedemptionData.no_points_on_redeem || false;
+            
+            // Update earned points display based on setting
             const discountValue = response.discount_value || (response.points_redeemed / this.pointsPerCurrencyUnit);
-            const discountedSubtotal = Math.max(0, this.cartSubtotal - discountValue);
             const $pointsRow = $('tr.sellsuite-points-row .points-amount');
             
             if ($pointsRow.length) {
-                const earnedPoints = Math.floor(discountedSubtotal);
-                console.log('discountedSubtotal: ', earnedPoints);
+                let earnedPoints;
+                
+                if (noPointsOnRedeem) {
+                    // If setting enabled: award 0 points when redemption is active
+                    earnedPoints = 0;
+                } else {
+                    // If setting disabled: calculate normally (subtract discount from subtotal)
+                    const discountedSubtotal = Math.max(0, this.cartSubtotal - discountValue);
+                    earnedPoints = Math.floor(discountedSubtotal);
+                }
+                
                 $pointsRow.html('<i class="fas fa-star"></i> ' + earnedPoints);
                 console.log('SellSuite: Earned Points Updated After Redemption:', {
                     'originalSubtotal': this.cartSubtotal,
                     'discountValue': discountValue,
-                    'discountedSubtotal': discountedSubtotal,
+                    'noPointsOnRedeem': noPointsOnRedeem,
                     'earnedPoints': earnedPoints
                 });
+            }
+
+            // Show notice if points are disabled during redemption
+            if (noPointsOnRedeem) {
+                this.showRedemptionNotice();
             }
 
             // Get nonce for AJAX
@@ -487,6 +508,9 @@
             $('table.shop_table tbody tr.sellsuite-redemption-row').remove();
             $('tr.sellsuite-redemption-row').remove();
 
+            // Remove redemption notice if it exists
+            $('#sellsuite-redemption-notice').remove();
+
             // Update available points
             this.availablePoints = response.remaining_balance || this.availablePoints;
             $('#sellsuite-available-points').text(this.availablePoints);
@@ -609,26 +633,42 @@
                 return; // No points row to update
             }
 
+            // Get the setting for disabling points on redemption
+            const noPointsOnRedeem = window.sellsuiteRedemptionData?.no_points_on_redeem || false;
+            
             // Earned points = Cart Subtotal only (1:1 calculation, no shipping/taxes/fees)
             let earnedPoints = Math.floor(this.cartSubtotal);
             let discountValue = 0;
+            let hasRedemption = false;
             const currentDisplay = $pointsRow.text().trim();
 
             // Update earned points display to account for the redemption discount
-            // Earned points = (Original Subtotal - Redemption Discount)
+            // Earned points = (Original Subtotal - Redemption Discount) OR 0 if noPointsOnRedeem is enabled
             
             // Method 1: If response parameter provided (from onRedemptionSuccess or onCheckoutUpdate)
             if (response) {
                 discountValue = response.discount_value || (response.points_redeemed / this.pointsPerCurrencyUnit);
-                earnedPoints = Math.max(0, this.cartSubtotal - discountValue);
-
-            } else if (window.sellsuiteRedemptionData && window.sellsuiteRedemptionData.has_pending_redemption) {
-                // Method 2: Check for pending redemption on page reload
+                hasRedemption = true;
+            } 
+            // Method 2: Check for pending redemption on page reload
+            else if (window.sellsuiteRedemptionData && window.sellsuiteRedemptionData.has_pending_redemption) {
                 const pendingDiscount = parseFloat(window.sellsuiteRedemptionData.pending_discount_value) || 0;
                 if (pendingDiscount > 0) {
                     discountValue = pendingDiscount;
-                    earnedPoints = Math.max(0, this.cartSubtotal - discountValue);
+                    hasRedemption = true;
                 }
+            }
+
+            // Calculate earned points based on setting and redemption status
+            if (hasRedemption && noPointsOnRedeem) {
+                // If setting enabled and redemption is active: award 0 points
+                earnedPoints = 0;
+            } else if (hasRedemption && !noPointsOnRedeem) {
+                // If setting disabled and redemption is active: award subtotal minus discount
+                earnedPoints = Math.max(0, this.cartSubtotal - discountValue);
+            } else {
+                // No redemption: award full subtotal
+                earnedPoints = Math.floor(this.cartSubtotal);
             }
             
             // Update the display with the calculated points based on subtotal
@@ -638,6 +678,8 @@
                 'previousValue': currentDisplay,
                 'cartSubtotal': this.cartSubtotal,
                 'discountValue': discountValue,
+                'hasRedemption': hasRedemption,
+                'noPointsOnRedeem': noPointsOnRedeem,
                 'earnedPoints': earnedPoints,
                 'hasPendingRedemption': window.sellsuiteRedemptionData?.has_pending_redemption || false,
                 'elementFound': true,
@@ -655,6 +697,33 @@
                 return parseInt($orderIdInput.val()) || 0;
             }
             return 0;
+        },
+
+        /**
+         * Show redemption notice
+         * Displays message that points won't be earned when redemption is active
+         */
+        showRedemptionNotice: function() {
+            // Remove if already exists
+            $('#sellsuite-redemption-notice').remove();
+            
+            // Create notice HTML
+            const noticeHtml = `
+                <div id="sellsuite-redemption-notice" class="woocommerce-info" style="margin: 15px 0; padding: 12px 15px; border-left: 4px solid #3498db; background: #ecf0f1;">
+                    <p style="margin: 0; color: #333;">
+                        <strong>Points Notice:</strong> When you redeem reward points, you will not earn new points for this order.
+                    </p>
+                </div>
+            `;
+            
+            // Insert after order review table
+            const $table = $('table.woocommerce-review-order-table, .woocommerce-checkout-review-order table');
+            if ($table.length) {
+                $table.after(noticeHtml);
+                console.log('SellSuite: Redemption notice displayed');
+            } else {
+                console.warn('SellSuite: Could not find order review table to insert notice');
+            }
         },
 
         /**
