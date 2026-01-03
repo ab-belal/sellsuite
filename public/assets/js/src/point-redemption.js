@@ -39,14 +39,26 @@
             this.currencyPosition = window.sellsuiteRedemptionData.currency_position || 'right';
             this.availablePoints = parseInt(window.sellsuiteRedemptionData.available_points) || 0;
             this.cartSubtotal = parseFloat(window.sellsuiteRedemptionData.cart_subtotal) || 0;  // Product subtotal for points
-            this.orderTotal = parseFloat(window.sellsuiteRedemptionData.order_total) || 0;      // Full total for max redeemable
+            this.orderTotal = parseFloat(window.sellsuiteRedemptionData.order_total) || 0;      // Full total for display
             
-            // Calculate max redeemable amount based on full order total (including shipping)
-            this.maxRedeemable = (this.orderTotal * this.maxRedeemablePercentage) / 100;
+            // Calculate max redeemable amount based on SUBTOTAL only (excluding shipping)
+            // This ensures users can only redeem points based on product price, not shipping
+            this.maxRedeemable = (this.cartSubtotal * this.maxRedeemablePercentage) / 100;
             
             // Bind events
             this.bindEvents();
             this.updateDisplay();
+
+            // Check if there's a pending redemption from page reload
+            if (window.sellsuiteRedemptionData.has_pending_redemption) {
+                const pendingPoints = parseInt(window.sellsuiteRedemptionData.pending_redeemed_points) || 0;
+                const pendingDiscount = parseFloat(window.sellsuiteRedemptionData.pending_discount_value) || 0;
+                
+                if (pendingPoints > 0 && pendingDiscount > 0) {
+                    this.redemptionId = 'pending';
+                    this.redemptionApplied = true;
+                }
+            }
 
             // Listen for order total changes
             $(document.body).on('updated_checkout', function() {
@@ -153,13 +165,13 @@
                         <span class="label">${points} points ÷ ${this.pointsPerCurrencyUnit} = <strong>${this.formatCurrency(discountValue)} discount</strong></span>
                     </div>
                     <div class="sellsuite-calculation-row">
-                        <span class="label">Subtotal: <strong>${this.formatCurrency(this.orderTotal)}</strong></span>
+                        <span class="label">Subtotal: <strong>${this.formatCurrency(this.cartSubtotal)}</strong></span>
                     </div>
                     <div class="sellsuite-calculation-row">
                         <span class="label">Discount: <strong>-${this.formatCurrency(discountValue)}</strong></span>
                     </div>
                     <div class="sellsuite-calculation-row" style="border-top: 1px solid #ddd; padding-top: 10px; margin-top: 10px;">
-                        <span class="label">New Total: <strong style="color: #28a745; font-size: 16px;">${this.formatCurrency(newTotal)}</strong></span>
+                        <span class="label">New Subtotal: <strong style="color: #28a745; font-size: 16px;">${this.formatCurrency(newTotal)}</strong></span>
                     </div>
                     <div class="sellsuite-calculation-row">
                         <span class="label">Available after: <strong>${remainingPoints} points</strong></span>
@@ -334,8 +346,8 @@
             const html = `
                 <tr class="sellsuite-redemption-row">
                     <td class="redemption-label">
-                        <strong>Points Used</strong><br/>
-                        <small style="color: #999;">${response.points_redeemed} points</small>
+                        <strong>Points Discount</strong>
+                        <small style="color: #999; display: block; line-height: 1;">For ${response.points_redeemed} points</small>
                     </td>
                     <td class="discount-amount">
                         ${this.formatCurrencyForTable(-discountValue)}
@@ -348,9 +360,9 @@
             `;
 
             // Insert AFTER total row
-            const $totalRow = $table.find('tr.order-total, tr.cart-total, tr.order-subtotal');
+            const $totalRow = $table.find('tr.cart-subtotal');
             if ($totalRow.length) {
-                $totalRow.before(html);
+                $totalRow.after(html);
             } else {
                 $table.append(html);
             }

@@ -97,10 +97,14 @@ class Order_Handler {
                     do_action('sellsuite_product_points_awarded', $product_id, $quantity, $item_points, $order_id);
                 }
             } else {
-                // Earned Points = Order Total (1:1 ratio)
-                // Use the final order total which includes point redemption discounts
-                $order_total = floatval($order->get_total());
-                $total_points = intval(floor($order_total));
+                // Earned Points = Order Subtotal (1:1 ratio)
+                // Use order subtotal ONLY - exclude shipping, taxes, and fees
+                // Calculate: Sum of line item totals (products only)
+                $order_subtotal = 0;
+                foreach ($order->get_items() as $item) {
+                    $order_subtotal += floatval($item->get_total());
+                }
+                $total_points = intval(floor($order_subtotal));
 
                 // Collect product IDs even when using order total calculation
                 foreach ($order->get_items() as $item) {
@@ -363,14 +367,19 @@ class Order_Handler {
      */
     private static function calculate_order_points($order) {
         $settings = Points::get_settings();
-        $order_total = $order->get_total();
+        
+        // Calculate order subtotal (products only, exclude shipping/taxes/fees)
+        $order_subtotal = 0;
+        foreach ($order->get_items() as $item) {
+            $order_subtotal += floatval($item->get_total());
+        }
 
         if ($settings['point_calculation_method'] === 'percentage') {
-            return floor(($order_total * $settings['points_percentage']) / 100);
+            return floor(($order_subtotal * $settings['points_percentage']) / 100);
         }
 
         // Fixed method: points per currency
-        return floor($order_total * $settings['points_per_currency']);
+        return floor($order_subtotal * $settings['points_per_currency']);
     }
 
     /**

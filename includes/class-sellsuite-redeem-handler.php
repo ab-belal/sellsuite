@@ -103,11 +103,15 @@ class Redeem_Handler {
                 }
             }
 
+            // Generate a temporary redemption ID for front-end reference
+            $temp_redemption_id = wp_generate_uuid4();
+
             // Store redemption data in user meta for temporary use during checkout
             // Database record will be created after order is placed using WooCommerce hook
             $redemption_data = array(
                 'user_id' => $user_id,
                 'order_id' => intval($order_id),
+                'redemption_id' => $temp_redemption_id,
                 'redeemed_points' => $points,
                 'discount_value' => $discount_value,
                 'conversion_rate' => $points_per_currency_unit,
@@ -119,9 +123,6 @@ class Redeem_Handler {
             // Store in user meta temporarily - will be processed after order placement
             update_user_meta($user_id, '_pending_point_redemption', $redemption_data);
 
-            // Generate a temporary redemption ID for front-end reference
-            $temp_redemption_id = wp_generate_uuid4();
-            
             // Generate ledger ID without creating database entry
             global $wpdb;
             $ledger_id = Points::generate_ledger_id();
@@ -267,8 +268,12 @@ class Redeem_Handler {
             );
         }
 
-        $order_total = $order->get_total();
-        $max_redeemable = ($order_total * $settings['max_redeemable_percentage']) / 100;
+        // Calculate order subtotal (products only, exclude shipping/taxes/fees)
+        $order_subtotal = 0;
+        foreach ($order->get_items() as $item) {
+            $order_subtotal += floatval($item->get_total());
+        }
+        $max_redeemable = ($order_subtotal * $settings['max_redeemable_percentage']) / 100;
 
         // Get already redeemed in this order
         $already_redeemed = floatval(get_post_meta($order_id, '_points_discount_applied', true) ?: 0);

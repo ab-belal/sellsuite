@@ -79,12 +79,49 @@ defined( 'ABSPATH' ) || exit;
 		do_action( 'woocommerce_review_order_after_cart_contents' );
 		?>
 	</tbody>
+	
 	<tfoot>
-
 		<tr class="cart-subtotal">
 			<th><?php esc_html_e( 'Subtotal', 'woocommerce' ); ?></th>
 			<td><?php wc_cart_totals_subtotal_html(); ?></td>
 		</tr>
+		
+		<?php foreach ( WC()->cart->get_fees() as $fee ) : 
+			// Get fee discount value for displaying points info
+			$fee_amount = floatval($fee->total);
+			$fee_label = esc_html($fee->name);
+			
+			// Check if this is a point redemption fee and get points info
+			$is_point_fee = stripos($fee->name, 'point') !== false;
+			if ($is_point_fee && is_user_logged_in()) {
+				$user_id = get_current_user_id();
+				$pending_redemption = get_user_meta($user_id, '_pending_point_redemption', true);
+				if (!empty($pending_redemption)) {
+					$redeemed_points = intval($pending_redemption['redeemed_points'] ?? 0);
+					$fee_label .= sprintf(
+						'<br/><small style="display:block; color:#999; line-height:1.2; font-weight:normal;">%s</small>',
+						sprintf(
+							/* translators: %d = redeemed points */
+							esc_html__( 'For %d points', 'sellsuite' ),
+							intval( $redeemed_points )
+						)
+					);
+
+				}
+			}
+			?>
+			<tr class="fee sellsuite-point-redemption-fee">
+				<th><?php echo wp_kses_post($fee_label); ?></th>
+				<td>
+					<?php wc_cart_totals_fee_html( $fee ); ?>
+					
+					<button type="button" class="sellsuite-cancel-redemption-btn" title="Cancel Point Discount" style="margin-left: 10px; background: none; border: none; color: #dc3545; cursor: pointer; padding: 0; font-size: 16px;">
+						<span class="dashicons dashicons-no" style="width: auto; height: auto; font-size: 16px;"></span>
+						<span class="dashicons dashicons-update" style="width: auto; height: auto; font-size: 16px; display: none;"></span>
+					</button>
+				</td>
+			</tr>
+		<?php endforeach; ?>
 
 		<?php foreach ( WC()->cart->get_coupons() as $code => $coupon ) : ?>
 			<tr class="cart-discount coupon-<?php echo esc_attr( sanitize_title( $code ) ); ?>">
@@ -102,13 +139,6 @@ defined( 'ABSPATH' ) || exit;
 			<?php do_action( 'woocommerce_review_order_after_shipping' ); ?>
 
 		<?php endif; ?>
-
-		<?php foreach ( WC()->cart->get_fees() as $fee ) : ?>
-			<tr class="fee">
-				<th><?php echo esc_html( $fee->name ); ?></th>
-				<td><?php wc_cart_totals_fee_html( $fee ); ?></td>
-			</tr>
-		<?php endforeach; ?>
 
 		<?php if ( wc_tax_enabled() && ! WC()->cart->display_prices_including_tax() ) : ?>
 			<?php if ( 'itemized' === get_option( 'woocommerce_tax_total_display' ) ) : ?>

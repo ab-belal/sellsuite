@@ -271,6 +271,13 @@ class SellSuite_Frontend_Display {
             return;
         }
 
+        // Check if user already has pending redemption
+        // If so, don't show the redemption box (it's already applied)
+        $pending_redemption_data = get_user_meta($user_id, '_pending_point_redemption', true);
+        if (!empty($pending_redemption_data)) {
+            return; // Redemption already applied, hide the box
+        }
+
         // Check if user has available points
         $available_points = \SellSuite\Points::get_available_points($user_id);
         
@@ -331,6 +338,15 @@ class SellSuite_Frontend_Display {
         
         $settings = \SellSuite\Points::get_settings();
         
+        // Get pending redemption data from user meta (if page is reloaded after applying points)
+        $pending_redemption_data = get_user_meta($user_id, '_pending_point_redemption', true);
+        $pending_redeemed_points = 0;
+        $pending_discount_value = 0;
+        if ($pending_redemption_data && !empty($pending_redemption_data)) {
+            $pending_redeemed_points = intval($pending_redemption_data['redeemed_points'] ?? 0);
+            $pending_discount_value = floatval($pending_redemption_data['discount_value'] ?? 0);
+        }
+        
         // Get cart subtotal (product total without shipping, taxes, or fees)
         // This is used for calculating earned points
         $cart_subtotal = 0;
@@ -356,6 +372,9 @@ class SellSuite_Frontend_Display {
                 'pending_redemption_points' => intval($pending_redemption_points), // Show pending separately
                 'cart_subtotal' => $cart_subtotal, // Product total without shipping (for points calculation)
                 'order_total' => $order_total, // Full total including shipping (for max redeemable calculation)
+                'has_pending_redemption' => !empty($pending_redemption_data), // Check if redemption is active
+                'pending_redeemed_points' => $pending_redeemed_points, // Points being redeemed
+                'pending_discount_value' => $pending_discount_value, // Discount being applied
                 'currency' => get_woocommerce_currency(),
                 'currency_symbol' => get_woocommerce_currency_symbol(),
                 'currency_position' => get_option( 'woocommerce_currency_pos' ),
