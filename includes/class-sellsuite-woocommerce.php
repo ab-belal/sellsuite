@@ -176,6 +176,7 @@ class WooCommerce_Integration {
      *
      * @return void
      */
+    
     public function apply_redemption_discount_fee() {
         // Only apply on checkout or cart pages
         if (is_admin()) {
