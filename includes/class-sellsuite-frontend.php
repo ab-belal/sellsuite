@@ -44,9 +44,6 @@ class Frontend {
         // Checkout review order table points row
         add_action('woocommerce_review_order_after_order_total', array('SellSuite_Frontend_Display', 'add_checkout_points_row'));
 
-        // Thank you page points display
-        add_action('woocommerce_thankyou', array('SellSuite_Frontend_Display', 'display_thankyou_points'), 5, 1);
-
         // Inline CSS for points display
         add_action('wp_head', array('SellSuite_Frontend_Display', 'add_inline_css'));
 
