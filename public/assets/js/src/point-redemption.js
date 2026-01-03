@@ -15,7 +15,8 @@
         maxRedeemablePercentage: 0,
         currency: '$',
         currencySymbol: '$',
-        orderTotal: 0,
+        cartSubtotal: 0,  // Product subtotal (without shipping, taxes, fees) - used for points
+        orderTotal: 0,    // Full order total (including shipping) - used for max redeemable calc
         maxRedeemable: 0,
         availablePoints: 0,
         redemptionApplied: false,
@@ -37,9 +38,10 @@
             this.currencySymbol = window.sellsuiteRedemptionData.currency_symbol || '$';
             this.currencyPosition = window.sellsuiteRedemptionData.currency_position || 'right';
             this.availablePoints = parseInt(window.sellsuiteRedemptionData.available_points) || 0;
-            this.orderTotal = parseFloat(window.sellsuiteRedemptionData.order_total) || 0;
+            this.cartSubtotal = parseFloat(window.sellsuiteRedemptionData.cart_subtotal) || 0;  // Product subtotal for points
+            this.orderTotal = parseFloat(window.sellsuiteRedemptionData.order_total) || 0;      // Full total for max redeemable
             
-            // Calculate max redeemable amount
+            // Calculate max redeemable amount based on full order total (including shipping)
             this.maxRedeemable = (this.orderTotal * this.maxRedeemablePercentage) / 100;
             
             // Bind events
@@ -501,65 +503,60 @@
          * Handle checkout updates (e.g., shipping method change)
          */
         onCheckoutUpdate: function() {
-            // Get the updated order total from WooCommerce checkout form data
-            // Try multiple selectors to ensure we get the current total
+            // Get the updated cart subtotal from WooCommerce checkout
+            // This should only include product prices, NOT shipping, taxes, or fees
+            // When checkout updates, we need to find and update the subtotal for points calculation
             
-            let newTotal = 0;
+            let newSubtotal = 0;
             
-            // Method 1: Direct query on the order-total row for any price amount
-            const $orderTotalElements = $('tr.order-total .woocommerce-Price-amount');
-            if ($orderTotalElements.length) {
-                // Get the last one (in case there are multiple)
-                const $lastTotal = $orderTotalElements.last();
-                const totalText = $lastTotal.text().trim();
-                // Extract numeric value, handling various currency formats
-                const numericValue = totalText.replace(/[^\d.,]/g, '').replace(/,/g, '');
-                newTotal = parseFloat(numericValue) || 0;
-                console.log('SellSuite: Found total from order-total row:', totalText, '→', newTotal);
+            // Method 1: Look for the subtotal row in the order review table
+            const $subtotalElements = $('tr.woocommerce-checkout-review-order__subtotal .woocommerce-Price-amount, tr.cart-subtotal .woocommerce-Price-amount');
+            if ($subtotalElements.length) {
+                const $lastSubtotal = $subtotalElements.last();
+                const subtotalText = $lastSubtotal.text().trim();
+                const numericValue = subtotalText.replace(/[^\d.,]/g, '').replace(/,/g, '');
+                newSubtotal = parseFloat(numericValue) || 0;
+                console.log('SellSuite: Found subtotal from subtotal row:', subtotalText, '→', newSubtotal);
             }
             
-            // Method 2: Look for all price amounts and find the one that changed
-            if (!newTotal || newTotal <= 0) {
-                const allPrices = $('bdi, .woocommerce-Price-amount').map(function() {
-                    const text = $(this).text().trim();
-                    const numeric = text.replace(/[^\d.,]/g, '').replace(/,/g, '');
-                    return parseFloat(numeric) || 0;
-                }).get().filter(p => p > 0);
-                
-                if (allPrices.length > 0) {
-                    // Get the highest value (should be the order total)
-                    newTotal = Math.max(...allPrices);
-                    console.log('SellSuite: Found total from all prices:', newTotal);
+            // Method 2: If not found, try to extract subtotal before shipping/fees
+            if (!newSubtotal || newSubtotal <= 0) {
+                // Look for all rows in the order review table
+                const $rows = $('table.woocommerce-review-order-table tbody tr, .woocommerce-checkout-review-order table tbody tr');
+                $rows.each((index, element) => {
+                    const $row = $(element);
+                    const text = $row.text().toLowerCase();
+                    
+                    // Look for subtotal-like rows
+                    if (text.includes('subtotal') && !text.includes('tax') && !text.includes('shipping')) {
+                        const $amount = $row.find('.woocommerce-Price-amount');
+                        if ($amount.length) {
+                            const amountText = $amount.text().trim();
+                            const numericValue = amountText.replace(/[^\d.,]/g, '').replace(/,/g, '');
+                            newSubtotal = parseFloat(numericValue) || newSubtotal;
+                        }
+                    }
+                });
+                if (newSubtotal > 0) {
+                    console.log('SellSuite: Found subtotal from table scan:', newSubtotal);
                 }
             }
             
-            // Method 3: Last resort - look for any visible price on the page
-            if (!newTotal || newTotal <= 0) {
-                const $anyPrice = $('[class*="total"] .woocommerce-Price-amount, [class*="Total"] .woocommerce-Price-amount');
-                if ($anyPrice.length > 0) {
-                    const totalText = $anyPrice.last().text().trim();
-                    const numericValue = totalText.replace(/[^\d.,]/g, '').replace(/,/g, '');
-                    newTotal = parseFloat(numericValue) || 0;
-                    console.log('SellSuite: Found total from total class:', totalText, '→', newTotal);
-                }
-            }
-            
-            // Update if we found a new total
-            if (newTotal > 0) {
-                console.log('SellSuite: Previous total:', this.orderTotal, '→ New total:', newTotal);
-                this.orderTotal = newTotal;
-                this.maxRedeemable = (this.orderTotal * this.maxRedeemablePercentage) / 100;
+            // Update if we found a new subtotal
+            if (newSubtotal > 0) {
+                console.log('SellSuite: Previous subtotal:', this.cartSubtotal, '→ New subtotal:', newSubtotal);
+                this.cartSubtotal = newSubtotal;
             } else {
-                console.warn('SellSuite: Could not find updated order total on page');
+                console.warn('SellSuite: Could not find updated cart subtotal on page');
             }
 
-            // Recalculate and update earned points display
+            // Recalculate and update earned points display based on subtotal
             this.updateEarnedPointsDisplay();
         },
 
         /**
-         * Update the earned points display based on current order total
-         * Earned points = Order Total (1:1 ratio, no conversion rate multiplier)
+         * Update the earned points display based on cart subtotal only
+         * Earned points = Cart Subtotal (1:1 ratio, excluding shipping/taxes/fees)
          */
         updateEarnedPointsDisplay: function() {
             // Get the earned points element
@@ -571,19 +568,19 @@
                 return; // No points row to update
             }
 
-            // Earned points = Order Total (simple 1:1 calculation)
-            const earnedPoints = Math.floor(this.orderTotal);
+            // Earned points = Cart Subtotal only (1:1 calculation, no shipping/taxes/fees)
+            const earnedPoints = Math.floor(this.cartSubtotal);
             const currentDisplay = $pointsRow.text().trim();
             
-            // Update the display with the calculated points
+            // Update the display with the calculated points based on subtotal
             $pointsRow.html('<i class="fas fa-star"></i> ' + earnedPoints);
             
-            console.log('SellSuite: Earned Points Updated:', {
+            console.log('SellSuite: Earned Points Updated (based on cart subtotal):', {
                 'previousValue': currentDisplay,
-                'orderTotal': this.orderTotal,
+                'cartSubtotal': this.cartSubtotal,
                 'earnedPoints': earnedPoints,
                 'elementFound': true,
-                'newDisplay': '<i class="fas fa-star"></i> ' + earnedPoints
+                'note': 'Points exclude shipping, taxes, and fees'
             });
         },
 

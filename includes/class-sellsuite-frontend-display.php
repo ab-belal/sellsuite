@@ -75,8 +75,9 @@ class SellSuite_Frontend_Display {
             return;
         }
 
-        // Calculate earned points: Earned Points = Order Total (1:1 ratio)
-        // Use subtotal (without taxes/fees) as the basis
+        // Calculate earned points based on product subtotal only (excluding shipping, taxes, fees)
+        // Formula: Points = Cart Subtotal (1:1 ratio)
+        // This excludes shipping, taxes, and fees - only product prices count
         $cart_subtotal = WC()->cart->get_subtotal();
         $total_points = intval(floor($cart_subtotal));
 
@@ -330,7 +331,14 @@ class SellSuite_Frontend_Display {
         
         $settings = \SellSuite\Points::get_settings();
         
-        // Get order total
+        // Get cart subtotal (product total without shipping, taxes, or fees)
+        // This is used for calculating earned points
+        $cart_subtotal = 0;
+        if (WC()->cart) {
+            $cart_subtotal = floatval(WC()->cart->get_subtotal());
+        }
+        
+        // Get order total (for max redeemable percentage calculation)
         $order_total = 0;
         if (WC()->cart) {
             $order_total = floatval(WC()->cart->get_total(false));
@@ -346,7 +354,8 @@ class SellSuite_Frontend_Display {
                 'available_points' => intval($adjusted_available), // Use adjusted available instead of total
                 'total_available_points' => intval($available_points), // Keep total for reference
                 'pending_redemption_points' => intval($pending_redemption_points), // Show pending separately
-                'order_total' => $order_total,
+                'cart_subtotal' => $cart_subtotal, // Product total without shipping (for points calculation)
+                'order_total' => $order_total, // Full total including shipping (for max redeemable calculation)
                 'currency' => get_woocommerce_currency(),
                 'currency_symbol' => get_woocommerce_currency_symbol(),
                 'currency_position' => get_option( 'woocommerce_currency_pos' ),
