@@ -14,7 +14,7 @@ const EarningPoints = ({ settings, handleChange }) => {
         currency = 'Taka (BDT)';
     }
 
-    
+
     return (
         <div className="point-management-tab-panel">
             <h3>Earning Points</h3>
