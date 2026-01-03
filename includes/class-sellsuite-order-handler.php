@@ -104,15 +104,32 @@ class Order_Handler {
                 foreach ($order->get_items() as $item) {
                     $order_subtotal += floatval($item->get_total());
                 }
-                $total_points = intval(floor($order_subtotal));
+
+                // Deduct point redemption discount from subtotal before calculating earned points
+                // This ensures earned points = (subtotal - redeemed_discount)
+                $point_redemption_discount = 0;
+                
+                // Check for point redemption fee in order fees
+                foreach ($order->get_fees() as $fee) {
+                    $fee_name = $fee->get_name();
+                    // Look for point redemption fee (case-insensitive)
+                    if (stripos($fee_name, 'point') !== false) {
+                        // Fee amount is negative for discounts, so we take absolute value
+                        $point_redemption_discount += abs(floatval($fee->get_total()));
+                    }
+                }
+
+                // Calculate final subtotal after discount
+                $final_subtotal = max(0, $order_subtotal - $point_redemption_discount);
+                $total_points = intval(floor($final_subtotal));
 
                 // Collect product IDs even when using order total calculation
                 foreach ($order->get_items() as $item) {
                     $product_ids[] = $item->get_product_id();
                 }
 
-                // Log order-based point awarding
-                do_action('sellsuite_order_points_awarded', $order_total, $total_points, $order_id);
+                // Log order-based point awarding with discount info
+                do_action('sellsuite_order_points_awarded', $order_subtotal, $total_points, $order_id, $point_redemption_discount);
             }
 
             // Apply global order point settings if no product-specific points

@@ -235,7 +235,6 @@
                     }
                 }),
                 success: (response) => {
-                    console.log('SellSuite Redemption Response:', response);
                     if (response.success) {
                         this.onRedemptionSuccess(response);
                         this.showSuccess(response.message);
@@ -273,6 +272,24 @@
             this.availablePoints = response.remaining_balance;
             $('#sellsuite-available-points').text(this.availablePoints);
 
+            // Update earned points display to account for the redemption discount
+            // Earned points = (Original Subtotal - Redemption Discount)
+            const discountValue = response.discount_value || (response.points_redeemed / this.pointsPerCurrencyUnit);
+            const discountedSubtotal = Math.max(0, this.cartSubtotal - discountValue);
+            const $pointsRow = $('tr.sellsuite-points-row .points-amount');
+            
+            if ($pointsRow.length) {
+                const earnedPoints = Math.floor(discountedSubtotal);
+                console.log('discountedSubtotal: ', earnedPoints);
+                $pointsRow.html('<i class="fas fa-star"></i> ' + earnedPoints);
+                console.log('SellSuite: Earned Points Updated After Redemption:', {
+                    'originalSubtotal': this.cartSubtotal,
+                    'discountValue': discountValue,
+                    'discountedSubtotal': discountedSubtotal,
+                    'earnedPoints': earnedPoints
+                });
+            }
+
             // Get nonce for AJAX
             const nonce = $('input[name="woocommerce-process-checkout-nonce"]').val();
             const ajaxurl = window.sellsuiteRedemptionData.ajaxurl;
@@ -300,7 +317,7 @@
                     
                     // Wait a moment for DOM to update, then recalculate points
                     setTimeout(function() {
-                        PointRedemption.onCheckoutUpdate();
+                        PointRedemption.onCheckoutUpdate(response);
                     }, 100); // 100ms delay to ensure DOM is fully updated
                 },
                 error: function(xhr, status, error) {
@@ -313,7 +330,7 @@
                     });
                     // Still try to update points even if AJAX fails
                     setTimeout(function() {
-                        PointRedemption.onCheckoutUpdate();
+                        PointRedemption.onCheckoutUpdate(response);
                     }, 100);
                 }
             });
@@ -474,6 +491,17 @@
             this.availablePoints = response.remaining_balance || this.availablePoints;
             $('#sellsuite-available-points').text(this.availablePoints);
 
+            // Restore earned points display back to original subtotal (no discount)
+            const $pointsRow = $('tr.sellsuite-points-row .points-amount');
+            if ($pointsRow.length) {
+                const earnedPoints = Math.floor(this.cartSubtotal);
+                $pointsRow.html('<i class="fas fa-star"></i> ' + earnedPoints);
+                console.log('SellSuite: Earned Points Restored After Cancellation:', {
+                    'cartSubtotal': this.cartSubtotal,
+                    'earnedPoints': earnedPoints
+                });
+            }
+
             // Reset calculation display
             this.updateCalculation(0);
 
@@ -514,7 +542,7 @@
         /**
          * Handle checkout updates (e.g., shipping method change)
          */
-        onCheckoutUpdate: function() {
+        onCheckoutUpdate: function(response) {
             // Get the updated cart subtotal from WooCommerce checkout
             // This should only include product prices, NOT shipping, taxes, or fees
             // When checkout updates, we need to find and update the subtotal for points calculation
@@ -563,14 +591,15 @@
             }
 
             // Recalculate and update earned points display based on subtotal
-            this.updateEarnedPointsDisplay();
+            this.updateEarnedPointsDisplay(response);
         },
 
         /**
          * Update the earned points display based on cart subtotal only
          * Earned points = Cart Subtotal (1:1 ratio, excluding shipping/taxes/fees)
+         * Also accounts for pending redemption discount on page reload
          */
-        updateEarnedPointsDisplay: function() {
+        updateEarnedPointsDisplay: function(response) {
             // Get the earned points element
             const $pointsRow = $('tr.sellsuite-points-row .points-amount');
             
@@ -581,18 +610,38 @@
             }
 
             // Earned points = Cart Subtotal only (1:1 calculation, no shipping/taxes/fees)
-            const earnedPoints = Math.floor(this.cartSubtotal);
+            let earnedPoints = Math.floor(this.cartSubtotal);
+            let discountValue = 0;
             const currentDisplay = $pointsRow.text().trim();
+
+            // Update earned points display to account for the redemption discount
+            // Earned points = (Original Subtotal - Redemption Discount)
+            
+            // Method 1: If response parameter provided (from onRedemptionSuccess or onCheckoutUpdate)
+            if (response) {
+                discountValue = response.discount_value || (response.points_redeemed / this.pointsPerCurrencyUnit);
+                earnedPoints = Math.max(0, this.cartSubtotal - discountValue);
+
+            } else if (window.sellsuiteRedemptionData && window.sellsuiteRedemptionData.has_pending_redemption) {
+                // Method 2: Check for pending redemption on page reload
+                const pendingDiscount = parseFloat(window.sellsuiteRedemptionData.pending_discount_value) || 0;
+                if (pendingDiscount > 0) {
+                    discountValue = pendingDiscount;
+                    earnedPoints = Math.max(0, this.cartSubtotal - discountValue);
+                }
+            }
             
             // Update the display with the calculated points based on subtotal
-            $pointsRow.html('<i class="fas fa-star"></i> ' + earnedPoints);
+            $pointsRow.html('<i class="fas fa-star"></i> ' + Math.floor(earnedPoints));
             
             console.log('SellSuite: Earned Points Updated (based on cart subtotal):', {
                 'previousValue': currentDisplay,
                 'cartSubtotal': this.cartSubtotal,
+                'discountValue': discountValue,
                 'earnedPoints': earnedPoints,
+                'hasPendingRedemption': window.sellsuiteRedemptionData?.has_pending_redemption || false,
                 'elementFound': true,
-                'note': 'Points exclude shipping, taxes, and fees'
+                'note': 'Points exclude shipping, taxes, and fees. Accounts for pending redemption.'
             });
         },
 
