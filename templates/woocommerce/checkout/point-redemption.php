@@ -18,6 +18,7 @@ if (!$user_id) {
     return; // Only show for logged-in users
 }
 
+
 // Get points data
 $available_points = \SellSuite\Points::get_available_points($user_id);
 
