@@ -28,6 +28,7 @@ const EarningPoints = ({ settings, handleChange }) => {
                     />
                     <span className="point-management-toggle-label">Disable Point Earning During Redemption </span>
                 </label>
+                
                 <p className="point-management-field-description">
                     When enabled, customers will not earn reward points on orders where reward points are used during checkout.
                 </p>
@@ -39,7 +40,7 @@ const EarningPoints = ({ settings, handleChange }) => {
                     <select
                         value={settings.point_calculation_method}
                         onChange={(e) => handleChange('point_calculation_method', e.target.value)}
-                        disabled={settings.no_points_on_redeem}
+                        disabled={!settings.points_enabled}
                     >
                         <option value="fixed">Fixed Points per {currency}</option>
                         <option value="percentage">Percentage of Price</option>
@@ -57,7 +58,7 @@ const EarningPoints = ({ settings, handleChange }) => {
                             step="1"
                             value={settings.points_per_currency}
                             onChange={(e) => handleChange('points_per_currency', parseInt(e.target.value))}
-                            disabled={settings.no_points_on_redeem}
+                            disabled={!settings.points_enabled}
                         />
                     </label>
                     <p className="point-management-field-description">
@@ -77,7 +78,7 @@ const EarningPoints = ({ settings, handleChange }) => {
                             step="0.1"
                             value={settings.points_percentage}
                             onChange={(e) => handleChange('points_percentage', parseFloat(e.target.value))}
-                            disabled={settings.no_points_on_redeem}
+                            disabled={!settings.points_enabled}
                         />
                     </label>
                     <p className="point-management-field-description">

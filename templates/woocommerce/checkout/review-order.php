@@ -38,36 +38,42 @@ defined( 'ABSPATH' ) || exit;
 						<div class="checkout-product-image">
 							<?php 
 								$thumbnail = $_product->get_image( 'thumbnail' );
-								echo $thumbnail;
+								echo '<figure class="checkout-product-thumbnail">';
+									echo $thumbnail;
 
-								echo '<span class="checkout-product-name">';
-									echo wp_kses_post( apply_filters( 'woocommerce_cart_item_name', $_product->get_name(), $cart_item, $cart_item_key ) ) . '&nbsp;'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+									echo apply_filters( 'woocommerce_checkout_cart_item_quantity', ' <strong class="product-quantity">' . sprintf( '%s', $cart_item['quantity'] ) . '</strong>', $cart_item, $cart_item_key ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+								echo '</figure>';
 
-									echo apply_filters( 'woocommerce_checkout_cart_item_quantity', ' <strong class="product-quantity">' . sprintf( '&times;&nbsp;%s', $cart_item['quantity'] ) . '</strong>', $cart_item, $cart_item_key ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-								echo '</span>';
+								echo '<div class="checkout-product-name-wrapper">';
+									echo '<span class="checkout-product-name">';
+										echo wp_kses_post( apply_filters( 'woocommerce_cart_item_name', $_product->get_name(), $cart_item, $cart_item_key ) ) . ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+									echo '</span>';
+
+									// SellSuite: Display points earned for this item (individual points)
+									if ( class_exists( 'SellSuite_Frontend_Display' ) && class_exists( 'SellSuite\Product_Meta' ) ) {
+										$product_id = $_product->get_id();
+										$quantity = $cart_item['quantity'];
+										$points_per_unit = \SellSuite\Product_Meta::get_product_points( $product_id );
+										$total_item_points = $points_per_unit * $quantity;
+										$get_product_cost_price = \SellSuite\Product_Meta::get_product_cost_price( $product_id );
+										echo 'Cost is: '.$get_product_cost_price;
+
+										if ( $total_item_points > 0 ) {
+											printf(
+												'<small class="this-item-points"><i class="fas fa-star"></i> ' . esc_html__( '%d points for this item', 'sellsuite' ) . '</small>',
+												intval( $total_item_points )
+											);
+										}
+									}
+								echo '</div>';
 							?>
 						</div>
 
 						<?php echo wc_get_formatted_cart_item_data( $cart_item ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 						
-						<!-- SellSuite: Display points earned for this item -->
-						<?php 
-						if ( class_exists( 'SellSuite_Frontend_Display' ) && class_exists( 'SellSuite\Product_Meta' ) ) {
-							echo '<div class="checkout-item-points">';
-							$product_id = $_product->get_id();
-							$quantity = $cart_item['quantity'];
-							$points_per_unit = \SellSuite\Product_Meta::get_product_points( $product_id );
-							$total_item_points = $points_per_unit * $quantity;
-							if ( $total_item_points > 0 ) {
-								printf(
-									'<small><i class="fas fa-star"></i> ' . esc_html__( '%d points for this item', 'sellsuite' ) . '</small>',
-									intval( $total_item_points )
-								);
-							}
-							echo '</div>';
-						}
-						?>
+						
 					</td>
+
 					<td class="product-total">
 						<?php echo apply_filters( 'woocommerce_cart_item_subtotal', WC()->cart->get_product_subtotal( $_product, $cart_item['quantity'] ), $cart_item, $cart_item_key ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 					</td>

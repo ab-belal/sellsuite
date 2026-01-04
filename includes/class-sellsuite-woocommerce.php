@@ -16,9 +16,24 @@ class WooCommerce_Integration {
         add_action('add_meta_boxes', array(Product_Meta::class, 'add_product_meta_box'));
         add_action('save_post_product', array(Product_Meta::class, 'save_product_meta_box'));
 
+        /**
+         * SIMPLE PRODUCT
+         * General → Pricing → After Sale Price
+         */
+        add_action( 'woocommerce_product_options_pricing', [Product_Meta::class, 'add_cost_price_simple'] );
+        add_action( 'woocommerce_process_product_meta', [Product_Meta::class, 'save_cost_price_simple'] );
+
         // Product variations
         add_action('woocommerce_product_after_variable_attributes', array(Product_Meta::class, 'add_variation_options'), 10, 3);
         add_action('woocommerce_save_product_variation', array(Product_Meta::class, 'save_variation_meta'), 10, 2);
+
+        /**
+         * VARIABLE PRODUCT
+         * Each variation → Pricing → After Sale Price
+         */
+        add_action('woocommerce_variation_options_pricing', [Product_Meta::class, 'add_cost_price_variation'], 10, 3);
+        add_action('woocommerce_save_product_variation', [Product_Meta::class, 'save_cost_price_variation'], 10, 2);
+        
 
         // Product deletion
         add_action('delete_post', array(Product_Meta::class, 'on_product_delete'));
@@ -117,6 +132,33 @@ class WooCommerce_Integration {
         WC()->session->__unset( 'sellsuite_redeem_discount' );
     }
 
+    /**
+     * Save product cost price meta.
+     * 
+     * @param int $post_id Product ID
+     * @return void
+     */
+    public function save_product_cost_price($post_id) {
+        // Verify nonce for product meta box
+        if (!isset($_POST['sellsuite_product_points_nonce']) || !wp_verify_nonce($_POST['sellsuite_product_points_nonce'], 'sellsuite_product_points_nonce')) {
+            return;
+        }
+
+        // Verify user capability
+        if (!current_user_can('edit_post', $post_id)) {
+            return;
+        }
+
+        // Check if product cost price field exists in post data
+        if (isset($_POST['_product_cost_price'])) {
+            $cost_price = sanitize_text_field($_POST['_product_cost_price']);
+            if ($cost_price !== '') {
+                update_post_meta($post_id, '_product_cost_price', floatval($cost_price));
+            } else {
+                delete_post_meta($post_id, '_product_cost_price');
+            }
+        }
+    }
 
     public function locate_plugin_template($template, $template_name, $template_path) {
         $plugin_template = SELLSUITE_PLUGIN_DIR . 'templates/woocommerce/' . $template_name;
