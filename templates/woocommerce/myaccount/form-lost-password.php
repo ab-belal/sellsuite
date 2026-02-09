@@ -20,11 +20,11 @@ defined( 'ABSPATH' ) || exit;
 do_action( 'woocommerce_before_lost_password_form' );
 ?>
 
-<div class="woohoopress-login">
+<div class="sellix-login">
 	<span class="sweeylo-logo">
 		sweeylo
 	</span>
-	<div class="woohoopress-login-wrapper">
+	<div class="sellix-login-wrapper">
 		<figure class="login-form-left">
 			<img src="/wp-content/uploads/2025/11/elegant-fashion-clothing-minimalist-style.jpg" alt="Login Image">
 		</figure>

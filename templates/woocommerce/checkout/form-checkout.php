@@ -20,9 +20,9 @@ wc_print_notices();
 do_action( 'woocommerce_before_checkout_form', $checkout );
 
 // Pull per-field errors from WC session (set during validation) so we can show inline messages
-$woohoopress_field_errors = array();
+$sellix_field_errors = array();
 if ( function_exists( 'WC' ) && isset( WC()->session ) ) {
-    $woohoopress_field_errors = WC()->session->get( 'woohoopress_field_errors', array() );
+    $sellix_field_errors = WC()->session->get( 'sellix_field_errors', array() );
 }
 
 // If checkout registration is disabled and user is not logged in, the user cannot checkout
@@ -32,11 +32,11 @@ if ( ! $checkout->is_registration_enabled() && $checkout->is_registration_requir
 }
 ?>
 
-<div class="woohoopress-checkout-form">
-    <div class="woohoopress-container">
+<div class="sellix-checkout-form">
+    <div class="sellix-container">
         <form name="checkout" method="post" class="checkout woocommerce-checkout" action="<?php echo esc_url( wc_get_checkout_url() ); ?>" enctype="multipart/form-data">
 
-            <div class="woohoopress-checkout-form-left">
+            <div class="sellix-checkout-form-left">
                 <?php do_action( 'woocommerce_checkout_before_customer_details' ); ?>
                 
                 <div class="col2-set" id="customer_details">
@@ -52,7 +52,7 @@ if ( ! $checkout->is_registration_enabled() && $checkout->is_registration_requir
                 <?php do_action( 'woocommerce_checkout_after_customer_details' ); ?>
             </div>
 
-            <div class="woohoopress-checkout-form-right">
+            <div class="sellix-checkout-form-right">
                 <?php do_action( 'woocommerce_checkout_before_order_review' ); ?>
                 
                 <div id="order_review" class="woocommerce-checkout-review-order">
@@ -72,5 +72,5 @@ if ( ! $checkout->is_registration_enabled() && $checkout->is_registration_requir
 <?php do_action( 'woocommerce_after_checkout_form', $checkout );
 // Clear session-held field errors after rendering so they don't persist on next page load
 if ( function_exists( 'WC' ) && isset( WC()->session ) ) {
-    WC()->session->__unset( 'woohoopress_field_errors' );
+    WC()->session->__unset( 'sellix_field_errors' );
 }

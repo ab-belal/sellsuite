@@ -17,8 +17,8 @@
 
 defined( 'ABSPATH' ) || exit;
 ?>
-<section class="woohoopress-account-dashboard">
-	<div class="woohoopress-container">
+<section class="sellix-account-dashboard">
+	<div class="sellix-container">
 		<div class="account-dashboard-wrapper">
 			<?php
 			/**

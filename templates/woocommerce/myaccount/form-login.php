@@ -20,11 +20,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 ?>
 
-<div class="woohoopress-login">
+<div class="sellix-login">
 	<span class="sweeylo-logo">
 		sweeylo
 	</span>
-	<div class="woohoopress-login-wrapper">
+	<div class="sellix-login-wrapper">
 		<figure class="login-form-left">
 			<img src="/wp-content/uploads/2025/11/elegant-fashion-clothing-minimalist-style.jpg" alt="Login Image">
 		</figure>
@@ -38,13 +38,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 			<div class="u-columns col2-set" id="customer_login">
 
-				<div class="u-column1 col-1 woohoopress-login-column">
+				<div class="u-column1 col-1 sellix-login-column">
 
 			<?php endif; ?>
 
 				<h2 class="form-title"><?php esc_html_e( 'Login', 'woocommerce' ); ?></h2>
 
-				<form id="woohoopress-login-form" class="woocommerce-form woocommerce-form-login login" method="post" onsubmit="return false;" novalidate>
+				<form id="sellix-login-form" class="woocommerce-form woocommerce-form-login login" method="post" onsubmit="return false;" novalidate>
 
 					<?php do_action( 'woocommerce_login_form_start' ); ?>
 
@@ -71,7 +71,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 						</span>
 
 						<?php wp_nonce_field( 'woocommerce-login', 'woocommerce-login-nonce' ); ?>
-						<button id="woohoopress-login-button" type="submit" class="woocommerce-button button woocommerce-form-login__submit<?php echo esc_attr( wc_wp_theme_get_element_class_name( 'button' ) ? ' ' . wc_wp_theme_get_element_class_name( 'button' ) : '' ); ?>" name="login" value="<?php esc_attr_e( 'Log in', 'woocommerce' ); ?>"><?php esc_html_e( 'Log in', 'woocommerce' ); ?>
+						<button id="sellix-login-button" type="submit" class="woocommerce-button button woocommerce-form-login__submit<?php echo esc_attr( wc_wp_theme_get_element_class_name( 'button' ) ? ' ' . wc_wp_theme_get_element_class_name( 'button' ) : '' ); ?>" name="login" value="<?php esc_attr_e( 'Log in', 'woocommerce' ); ?>"><?php esc_html_e( 'Log in', 'woocommerce' ); ?>
 							<span class="login-spinner" style="display:none" aria-hidden="true">
 								<svg width="14" height="14" aria-hidden="true" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg"><g><circle cx="25" cy="25" r="20" fill="none" stroke="#333" stroke-dasharray="80" stroke-dashoffset="60" stroke-linecap="round" stroke-width="6"/><animateTransform attributeName="transform" dur="0.9s" from="0 25 25" repeatCount="indefinite" to="360 25 25" type="rotate"/></g></svg>
 							</span>
@@ -92,7 +92,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 				</div>
 
-				<div class="u-column2 col-2 woohoopress-signup-column">
+				<div class="u-column2 col-2 sellix-signup-column">
 
 					<h2 class="form-title">
 						<?php esc_html_e( 'Sign Up', 'woocommerce' ); ?>
@@ -134,7 +134,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 						<p class="woocommerce-form-row form-row">
 							<?php wp_nonce_field( 'woocommerce-register', 'woocommerce-register-nonce' ); ?>
-							<button type="submit" class="woohoopress-register-button woocommerce-Button woocommerce-button button<?php echo esc_attr( wc_wp_theme_get_element_class_name( 'button' ) ? ' ' . wc_wp_theme_get_element_class_name( 'button' ) : '' ); ?> woocommerce-form-register__submit" name="register" value="<?php esc_attr_e( 'Register', 'woocommerce' ); ?>"><?php esc_html_e( 'Sign Up', 'woocommerce' ); ?>
+							<button type="submit" class="sellix-register-button woocommerce-Button woocommerce-button button<?php echo esc_attr( wc_wp_theme_get_element_class_name( 'button' ) ? ' ' . wc_wp_theme_get_element_class_name( 'button' ) : '' ); ?> woocommerce-form-register__submit" name="register" value="<?php esc_attr_e( 'Register', 'woocommerce' ); ?>"><?php esc_html_e( 'Sign Up', 'woocommerce' ); ?>
 								<span class="register-spinner" style="display:none" aria-hidden="true">
 									<svg width="14" height="14" aria-hidden="true" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg"><g><circle cx="25" cy="25" r="20" fill="none" stroke="#333" stroke-dasharray="80" stroke-dashoffset="60" stroke-linecap="round" stroke-width="6"/><animateTransform attributeName="transform" dur="0.9s" from="0 25 25" repeatCount="indefinite" to="360 25 25" type="rotate"/></g></svg>
 								</span>

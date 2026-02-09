@@ -20,11 +20,11 @@
 defined( 'ABSPATH' ) || exit;
 ?>
 
-<div class="woohoopress-thankyou">
-	<div class="woohoopress-container">
+<div class="sellix-thankyou">
+	<div class="sellix-container">
 		<div class="thankyou-hero">
 			<h1>
-				<?php echo __( '<span>Thank you</span> for Purchasing!', 'woohoopress' ); ?>
+				<?php echo __( '<span>Thank you</span> for Purchasing!', 'sellix' ); ?>
 			</h1>
 
 			<?php wc_get_template( 'checkout/order-received.php', array( 'order' => $order ) ); ?>
